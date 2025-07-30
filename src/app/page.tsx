@@ -205,28 +205,6 @@ export default function Home() {
               </li>
             </ul>
           </div>
-
-          {/* Useful Links */}
-          <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-2xl font-bold">유용한 링크</h2>
-            <ul className="space-y-3">
-              <li className="text-gray-700">
-                <Link href="#" className="hover:text-blue-600 hover:underline">
-                  도움말: 문서 작성 방법
-                </Link>
-              </li>
-              <li className="text-gray-700">
-                <Link href="#" className="hover:text-blue-600 hover:underline">
-                  도움말: 문제 해결
-                </Link>
-              </li>
-              <li className="text-gray-700">
-                <Link href="#" className="hover:text-blue-600 hover:underline">
-                  사용자 가이드
-                </Link>
-              </li>
-            </ul>
-          </div>
         </div>
       </main>
     </div>
