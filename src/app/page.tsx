@@ -81,6 +81,7 @@ const seoulGuDong: Record<string, string[]> = {
   ]
 };
 
+
 export default function FirstPage() {
   const [selectedGu, setSelectedGu] = useState("");
   const [selectedDong, setSelectedDong] = useState("");
