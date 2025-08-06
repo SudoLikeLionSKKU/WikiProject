@@ -1,5 +1,20 @@
 import { supabase } from "./supabase";
 import { ListDocument, DetailSection } from "../../types/dto";
+import { DocumentType } from "../../types/basic";
+
+export async function getPopularDocuments(
+  limit: number
+): Promise<DocumentType[] | null> {
+  const { data, error } = await supabase
+    .from("Documents")
+    .select("*")
+    .limit(limit)
+    .order("stars", { ascending: false });
+
+  if (error) throw error;
+
+  return data;
+}
 
 export async function getListDocuments(
   limit: number
@@ -39,7 +54,7 @@ export async function getListDocuments(
     return {
       ...doc,
       Hashtags: doc.Hashtags,
-      introduction: introSection.SectionRevisions,
+      introduction: introSection?.SectionRevisions,
     };
   });
 
