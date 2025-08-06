@@ -1,8 +1,12 @@
+import { getListDocuments } from "@/lib/fetcher";
 import Image from "next/image";
 
 import Link from "next/link";
+import { ListDocument } from "../../types/dto";
 
-export default function Home() {
+export default async function Home() {
+  const data: ListDocument[] = (await getListDocuments(4)) as ListDocument[];
+  if (data.length != 0) console.log(data[0]);
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-800">
       {/* Header */}
