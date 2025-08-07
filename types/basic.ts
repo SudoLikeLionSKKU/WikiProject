@@ -26,3 +26,7 @@ export type SectionType = Database["public"]["Tables"]["Sections"]["Row"];
  */
 export type SectionRevisionType =
   Database["public"]["Tables"]["SectionRevisions"]["Row"];
+
+export const SECTION_KEY_INTRODUCTION = "introduction";
+export const SECTION_KEY_FEATURE = "feature";
+export const SECTION_KEY_ADDITIONAL_INFO = "additionalInfo";

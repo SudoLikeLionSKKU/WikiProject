@@ -16,54 +16,54 @@ export type Database = {
     Tables: {
       Documents: {
         Row: {
-          created_at: string
-          created_by: string | null
-          dong: string | null
-          gu: string | null
+          created_at: string | null
+          created_by: string
+          dong: string
+          gu: string
           id: number
-          location: string | null
+          location: string
           stars: number
-          title: string | null
+          title: string
         }
         Insert: {
-          created_at?: string
-          created_by?: string | null
-          dong?: string | null
-          gu?: string | null
+          created_at?: string | null
+          created_by: string
+          dong: string
+          gu: string
           id?: number
-          location?: string | null
+          location: string
           stars: number
-          title?: string | null
+          title: string
         }
         Update: {
-          created_at?: string
-          created_by?: string | null
-          dong?: string | null
-          gu?: string | null
+          created_at?: string | null
+          created_by?: string
+          dong?: string
+          gu?: string
           id?: number
-          location?: string | null
+          location?: string
           stars?: number
-          title?: string | null
+          title?: string
         }
         Relationships: []
       }
       Hashtags: {
         Row: {
-          content: string | null
+          content: string
           created_at: string
-          document_id: number | null
+          document_id: number
           id: number
         }
         Insert: {
-          content?: string | null
+          content: string
           created_at?: string
-          document_id?: number | null
+          document_id: number
           id?: number
         }
         Update: {
-          content?: string | null
+          content?: string
           created_at?: string
-          document_id?: number | null
+          document_id?: number
           id?: number
         }
         Relationships: [
@@ -100,9 +100,9 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "Reviews_id_fkey"
-            columns: ["id"]
-            isOneToOne: true
+            foreignKeyName: "Reviews_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
             referencedRelation: "Documents"
             referencedColumns: ["id"]
           },
@@ -112,26 +112,26 @@ export type Database = {
         Row: {
           content: string | null
           created_at: string
-          created_by: string | null
-          document_id: number | null
+          created_by: string
+          document_id: number
           id: number
-          section_id: number | null
+          section_id: number
         }
         Insert: {
           content?: string | null
           created_at?: string
-          created_by?: string | null
-          document_id?: number | null
+          created_by: string
+          document_id: number
           id?: number
-          section_id?: number | null
+          section_id: number
         }
         Update: {
           content?: string | null
           created_at?: string
-          created_by?: string | null
-          document_id?: number | null
+          created_by?: string
+          document_id?: number
           id?: number
-          section_id?: number | null
+          section_id?: number
         }
         Relationships: [
           {
@@ -152,25 +152,25 @@ export type Database = {
       }
       Sections: {
         Row: {
-          created_at: string
+          created_at: string | null
           current_revision_id: number | null
-          document_id: number | null
+          document_id: number
           id: number
-          section_key: string | null
+          section_key: string
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           current_revision_id?: number | null
-          document_id?: number | null
+          document_id: number
           id?: number
-          section_key?: string | null
+          section_key: string
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           current_revision_id?: number | null
-          document_id?: number | null
+          document_id?: number
           id?: number
-          section_key?: string | null
+          section_key?: string
         }
         Relationships: [
           {
@@ -194,7 +194,32 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_document_full_transaction: {
+        Args:
+          | {
+              doc_created_by: string
+              doc_dong: string
+              doc_gu: string
+              doc_title: string
+              doc_location: string
+              intro_content: string
+              feature_content: string
+              additional_info_content: string
+              hashtags_content: string[]
+            }
+          | {
+              doc_created_by: string
+              doc_dong: string
+              doc_gu: string
+              doc_title: string
+              doc_location: string
+              intro_content: string
+              feature_content: string
+              additional_info_content: string
+              hashtags_content: string[]
+            }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never
