@@ -5,7 +5,13 @@ import { useEffect } from "react";
 
 import Link from "next/link";
 import { LocalStorage } from "@/lib/localStorage";
-import { getListDocuments, getPopularDocuments } from "@/lib/fetcher";
+import {
+  getListDocuments,
+  getPopularDocuments,
+  createDocument,
+  getDetailDocument,
+} from "@/lib/fetcher";
+import { DetailDocument } from "../../../types/complex";
 
 export default function Home() {
   const router = useRouter();
@@ -20,6 +26,20 @@ export default function Home() {
       console.log(최근문서);
       const 인기문서 = await getPopularDocuments(2);
       console.log(인기문서);
+      const 제순식당 = await getDetailDocument(5);
+      console.log(제순식당);
+      // const data = await createDocument({
+      //   doc_created_by: "문태주",
+      //   doc_dong: "명륜1가",
+      //   doc_gu: "종로구",
+      //   doc_title: "제순식당",
+      //   doc_location: "혜화 어딘가 도로명 주소",
+      //   intro_content: "제순식당은 제육을 파는 식당입니다",
+      //   additional_info_content: "추가정보는 이곳에",
+      //   feature_content: "특징은 이곳에",
+      //   hashtags_content: ["제육", "덮밥", "식당"],
+      // });
+      // console.log("fetch결과", data);
     })();
   }, []);
   return (

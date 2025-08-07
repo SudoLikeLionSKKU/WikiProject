@@ -28,3 +28,15 @@ export interface DetailDocument extends DocumentType {
   additionalInfo: SectionRevisionType | null | undefined;
   reviews: ReviewType[];
 }
+
+export interface CreateDocumentDto {
+  created_by: string;
+  dong: string;
+  gu: string;
+  title: string;
+  location: string;
+  introduction: SectionRevisionType;
+  feature: SectionRevisionType;
+  additionalInfo: SectionRevisionType;
+  Hashtags: HashtagType[];
+}

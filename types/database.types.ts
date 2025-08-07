@@ -194,7 +194,32 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_document_full_transaction: {
+        Args:
+          | {
+              doc_created_by: string
+              doc_dong: string
+              doc_gu: string
+              doc_title: string
+              doc_location: string
+              intro_content: string
+              feature_content: string
+              additional_info_content: string
+              hashtags_content: string[]
+            }
+          | {
+              doc_created_by: string
+              doc_dong: string
+              doc_gu: string
+              doc_title: string
+              doc_location: string
+              intro_content: string
+              feature_content: string
+              additional_info_content: string
+              hashtags_content: string[]
+            }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never

@@ -16,6 +16,7 @@ import {
   InsertSectionDto,
   InsertSectionRevisionDto,
   InsertHashtagDto,
+  CreateDocumentDto,
 } from "../../types/dto";
 import { LocalStorage, Location } from "./localStorage";
 
@@ -109,16 +110,14 @@ export async function getDetailDocument(
       Hashtags(id, content, document_id, created_at),
       Reviews(id, created_at, created_by, content, document_id),
       Sections(
-        section_key,
-        SectionRevisions(
-          id,
-          created_at,
-          created_by,
-          content,
-          section_id,
-          document_id
-        )
-      )
+        section_key,
+        SectionRevisions!Sections_current_revision_id_fkey(
+        id, 
+        created_at, 
+        content, 
+        section_id
+        )
+      )
     `
     )
     .eq("id", document_id)
@@ -154,88 +153,22 @@ export async function getDetailDocument(
   };
 }
 
-export async function createDocument(
-  document: DetailDocument
-): Promise<number> {
-  //트랜잭션 시작
-  try {
-    const document_id: number = await insertDocument({
-      created_by: document.created_by,
-      stars: 0,
-      dong: document.dong,
-      gu: document.gu,
-      title: document.title,
-      location: document.location,
-    });
+// 클라이언트 코드
+export async function createDocument(dto: CreateDocumentDto): Promise<number> {
+  const { data: document_id, error } = await supabase.rpc(
+    "create_document_full_transaction",
+    dto
+  );
 
-    //introduction
-    const introduction_section_id: number = await insertSection({
-      section_key: SECTION_KEY_INTRODUCTION,
-      document_id: document_id,
-    });
+  if (error) {
+    console.error("문서 생성 트랜잭션 실패:", error);
+    throw error;
+  }
 
-    const introduction_section_revision_id: number =
-      await InsertSectionRevision({
-        document_id: document_id,
-        section_id: introduction_section_id,
-        content: document.introduction?.content,
-        created_by: document.created_by,
-      });
-
-    UpdateSectionCurrentReivisonId(
-      introduction_section_id,
-      introduction_section_revision_id
-    );
-
-    //Feature
-    const feature_section_id: number = await insertSection({
-      section_key: SECTION_KEY_FEATURE,
-      document_id: document_id,
-    });
-
-    const feature_section_revision_id: number = await InsertSectionRevision({
-      document_id: document_id,
-      section_id: feature_section_id,
-      content: document.feature?.content,
-      created_by: document.created_by,
-    });
-
-    UpdateSectionCurrentReivisonId(
-      feature_section_id,
-      feature_section_revision_id
-    );
-
-    //Additional Info
-    const additionalInfo_section_id: number = await insertSection({
-      section_key: SECTION_KEY_ADDITIONAL_INFO,
-      document_id: document_id,
-    });
-
-    const additionalInfo_section_revision_id: number =
-      await InsertSectionRevision({
-        document_id: document_id,
-        section_id: additionalInfo_section_id,
-        content: document.additionalInfo?.content,
-        created_by: document.created_by,
-      });
-
-    UpdateSectionCurrentReivisonId(
-      additionalInfo_section_id,
-      additionalInfo_section_revision_id
-    );
-
-    //HashTags
-    document.Hashtags?.forEach((hashtag: HashtagType) => {
-      InsertHashtag({
-        document_id: document_id,
-        content: hashtag.content,
-      });
-    });
-
+  if (document_id) {
     return document_id;
-  } catch (ex) {
-    //rollback
-    throw ex;
+  } else {
+    throw new Error("문서 ID를 반환받지 못했습니다.");
   }
 }
 
