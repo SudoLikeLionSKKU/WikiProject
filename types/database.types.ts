@@ -18,6 +18,8 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          dong: string | null
+          gu: string | null
           id: number
           location: string | null
           stars: number
@@ -26,6 +28,8 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by?: string | null
+          dong?: string | null
+          gu?: string | null
           id?: number
           location?: string | null
           stars: number
@@ -34,6 +38,8 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string | null
+          dong?: string | null
+          gu?: string | null
           id?: number
           location?: string | null
           stars?: number
@@ -109,6 +115,7 @@ export type Database = {
           created_by: string | null
           document_id: number | null
           id: number
+          section_id: number | null
         }
         Insert: {
           content?: string | null
@@ -116,6 +123,7 @@ export type Database = {
           created_by?: string | null
           document_id?: number | null
           id?: number
+          section_id?: number | null
         }
         Update: {
           content?: string | null
@@ -123,6 +131,7 @@ export type Database = {
           created_by?: string | null
           document_id?: number | null
           id?: number
+          section_id?: number | null
         }
         Relationships: [
           {
@@ -130,6 +139,13 @@ export type Database = {
             columns: ["document_id"]
             isOneToOne: false
             referencedRelation: "Documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "SectionRevisions_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "Sections"
             referencedColumns: ["id"]
           },
         ]
