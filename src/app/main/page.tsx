@@ -1,8 +1,19 @@
+"use client";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 import Link from "next/link";
+import { LocalStorage } from "@/lib/localStorage";
 
 export default function Home() {
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!LocalStorage.ValidateGuDong()) {
+      router.push("/");
+    }
+  }, []);
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-800">
       {/* Header */}
