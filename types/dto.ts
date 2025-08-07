@@ -1,30 +1,13 @@
-import {
-  HashtagType,
-  ReviewType,
-  SectionRevisionType,
-  SectionType,
-  DocumentType,
-} from "./basic";
+import { Database } from "./database.types";
 
-export interface DetailSection extends SectionType {
-  SectionRevisions: SectionRevisionType[];
-}
+export type InsertDocumentDto =
+  Database["public"]["Tables"]["Documents"]["Insert"];
 
-/**
- * @description 리스트 페이지에서 사용되는 Document 자료형
- */
-export interface ListDocument extends DocumentType {
-  Hashtags: HashtagType[];
-  introduction: SectionRevisionType;
-}
+export type InsertSectionDto =
+  Database["public"]["Tables"]["Sections"]["Insert"];
 
-/**
- * @description 상세 페이지에서 사용되는 Document 자료형
- */
-export interface DetailDocument extends DocumentType {
-  Hashtags: HashtagType[];
-  introduction: SectionRevisionType | null | undefined;
-  feature: SectionRevisionType | null | undefined;
-  additionalInfo: SectionRevisionType | null | undefined;
-  reviews: ReviewType[];
-}
+export type InsertSectionRevisionDto =
+  Database["public"]["Tables"]["SectionRevisions"]["Insert"];
+
+export type InsertHashtagDto =
+  Database["public"]["Tables"]["Hashtags"]["Insert"];

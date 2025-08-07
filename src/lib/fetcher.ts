@@ -1,6 +1,22 @@
 import { supabase } from "./supabase";
-import { ListDocument, DetailSection, DetailDocument } from "../../types/dto";
-import { DocumentType } from "../../types/basic";
+import {
+  ListDocument,
+  DetailSection,
+  DetailDocument,
+} from "../../types/complex";
+import {
+  DocumentType,
+  HashtagType,
+  SECTION_KEY_ADDITIONAL_INFO,
+  SECTION_KEY_FEATURE,
+  SECTION_KEY_INTRODUCTION,
+} from "../../types/basic";
+import {
+  InsertDocumentDto,
+  InsertSectionDto,
+  InsertSectionRevisionDto,
+  InsertHashtagDto,
+} from "../../types/dto";
 import { LocalStorage, Location } from "./localStorage";
 
 export async function getPopularDocuments(
@@ -136,4 +152,153 @@ export async function getDetailDocument(
     additionalInfo: additionalInfoSection?.SectionRevisions,
     reviews: data.Reviews ?? [],
   };
+}
+
+export async function createDocument(
+  document: DetailDocument
+): Promise<number> {
+  //트랜잭션 시작
+  try {
+    const document_id: number = await insertDocument({
+      created_by: document.created_by,
+      stars: 0,
+      dong: document.dong,
+      gu: document.gu,
+      title: document.title,
+      location: document.location,
+    });
+
+    //introduction
+    const introduction_section_id: number = await insertSection({
+      section_key: SECTION_KEY_INTRODUCTION,
+      document_id: document_id,
+    });
+
+    const introduction_section_revision_id: number =
+      await InsertSectionRevision({
+        document_id: document_id,
+        section_id: introduction_section_id,
+        content: document.introduction?.content,
+        created_by: document.created_by,
+      });
+
+    UpdateSectionCurrentReivisonId(
+      introduction_section_id,
+      introduction_section_revision_id
+    );
+
+    //Feature
+    const feature_section_id: number = await insertSection({
+      section_key: SECTION_KEY_FEATURE,
+      document_id: document_id,
+    });
+
+    const feature_section_revision_id: number = await InsertSectionRevision({
+      document_id: document_id,
+      section_id: feature_section_id,
+      content: document.feature?.content,
+      created_by: document.created_by,
+    });
+
+    UpdateSectionCurrentReivisonId(
+      feature_section_id,
+      feature_section_revision_id
+    );
+
+    //Additional Info
+    const additionalInfo_section_id: number = await insertSection({
+      section_key: SECTION_KEY_ADDITIONAL_INFO,
+      document_id: document_id,
+    });
+
+    const additionalInfo_section_revision_id: number =
+      await InsertSectionRevision({
+        document_id: document_id,
+        section_id: additionalInfo_section_id,
+        content: document.additionalInfo?.content,
+        created_by: document.created_by,
+      });
+
+    UpdateSectionCurrentReivisonId(
+      additionalInfo_section_id,
+      additionalInfo_section_revision_id
+    );
+
+    //HashTags
+    document.Hashtags?.forEach((hashtag: HashtagType) => {
+      InsertHashtag({
+        document_id: document_id,
+        content: hashtag.content,
+      });
+    });
+
+    return document_id;
+  } catch (ex) {
+    //rollback
+    throw ex;
+  }
+}
+
+async function insertDocument(dto: InsertDocumentDto): Promise<number> {
+  const { data, error } = await supabase
+    .from("Documents")
+    .insert(dto)
+    .select("id")
+    .single();
+
+  if (error) throw error;
+
+  return data?.id;
+}
+
+async function insertSection(dto: InsertSectionDto): Promise<number> {
+  const { data, error } = await supabase
+    .from("Sections")
+    .insert(dto)
+    .select("id")
+    .single();
+
+  if (error) throw error;
+
+  return data?.id;
+}
+
+async function UpdateSectionCurrentReivisonId(
+  section_id: number,
+  revision_id: number
+): Promise<void> {
+  const { data, error } = await supabase
+    .from("Sections")
+    .update({
+      current_revision_id: revision_id,
+    })
+    .eq("id", section_id);
+
+  if (error) throw error;
+}
+
+async function InsertSectionRevision(
+  dto: InsertSectionRevisionDto
+): Promise<number> {
+  const { data, error } = await supabase
+    .from("SectionRevisions")
+    .insert(dto)
+    .select("id")
+    .single();
+
+  if (error) throw error;
+
+  return data?.id;
+}
+
+async function InsertHashtag(dto: InsertHashtagDto): Promise<number> {
+  const { data, error } = await supabase
+    .from("Hashtags")
+    .insert(dto)
+    .select("id")
+    .single();
+
+  if (error) throw error;
+
+  return data?.id;
 }
