@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import { ListDocument, DetailSection } from "../../types/dto";
+import { ListDocument, DetailSection, DetailDocument } from "../../types/dto";
 import { DocumentType } from "../../types/basic";
 import { LocalStorage, Location } from "./localStorage";
 
@@ -73,4 +73,67 @@ export async function getListDocuments(
   });
 
   return transformedData;
+}
+
+export async function getDetailDocument(
+  document_id: number
+): Promise<DetailDocument | null> {
+  const { data, error } = await supabase
+    .from("Documents")
+    .select(
+      `
+      id,
+      created_at,
+      created_by,
+      title,
+      location,
+      stars,
+      gu,
+      dong,
+      Hashtags(id, content, document_id, created_at),
+      Reviews(id, created_at, created_by, content, document_id),
+      Sections(
+        section_key,
+        SectionRevisions(
+          id,
+          created_at,
+          created_by,
+          content,
+          section_id,
+          document_id
+        )
+      )
+    `
+    )
+    .eq("id", document_id)
+    .single();
+
+  if (error) {
+    if (error.code === "PGRST116") {
+      // PGRST116 에러 코드는 데이터가 없을 때 발생합니다.
+      return null;
+    }
+    throw error;
+  }
+
+  const introSection = data.Sections.find(
+    (s: any) => s.section_key == "introduction"
+  );
+
+  const featureSection = data.Sections.find(
+    (s: any) => s.section_key == "feature"
+  );
+
+  const additionalInfoSection = data.Sections.find(
+    (s: any) => s.section_key == "additionalInfo"
+  );
+
+  return {
+    ...data,
+    Hashtags: data.Hashtags,
+    introduction: introSection?.SectionRevisions,
+    feature: featureSection?.SectionRevisions,
+    additionalInfo: additionalInfoSection?.SectionRevisions,
+    reviews: data.Reviews ?? [],
+  };
 }

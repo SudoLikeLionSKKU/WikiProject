@@ -100,9 +100,9 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "Reviews_id_fkey"
-            columns: ["id"]
-            isOneToOne: true
+            foreignKeyName: "Reviews_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
             referencedRelation: "Documents"
             referencedColumns: ["id"]
           },

@@ -3,6 +3,7 @@ import {
   ReviewType,
   SectionRevisionType,
   SectionType,
+  DocumentType,
 } from "./basic";
 
 export interface DetailSection extends SectionType {
@@ -12,7 +13,7 @@ export interface DetailSection extends SectionType {
 /**
  * @description 리스트 페이지에서 사용되는 Document 자료형
  */
-export interface ListDocument extends Document {
+export interface ListDocument extends DocumentType {
   Hashtags: HashtagType[];
   introduction: SectionRevisionType;
 }
@@ -20,10 +21,10 @@ export interface ListDocument extends Document {
 /**
  * @description 상세 페이지에서 사용되는 Document 자료형
  */
-export interface DetailDocument extends Document {
+export interface DetailDocument extends DocumentType {
   Hashtags: HashtagType[];
-  introduction: SectionRevisionType;
-  feature: SectionRevisionType;
-  additionalInfo: SectionRevisionType;
-  reviews: ReviewType;
+  introduction: SectionRevisionType | null | undefined;
+  feature: SectionRevisionType | null | undefined;
+  additionalInfo: SectionRevisionType | null | undefined;
+  reviews: ReviewType[];
 }
