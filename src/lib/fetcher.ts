@@ -1,13 +1,19 @@
 import { supabase } from "./supabase";
 import { ListDocument, DetailSection } from "../../types/dto";
 import { DocumentType } from "../../types/basic";
+import { LocalStorage, Location } from "./localStorage";
 
 export async function getPopularDocuments(
   limit: number
 ): Promise<DocumentType[] | null> {
+  const location: Location | null = LocalStorage.GetGuDong();
+  if (location == null) return null;
+
   const { data, error } = await supabase
     .from("Documents")
     .select("*")
+    .filter("gu", "eq", location.gu)
+    .filter("dong", "eq", location.dong)
     .limit(limit)
     .order("stars", { ascending: false });
 
@@ -19,6 +25,9 @@ export async function getPopularDocuments(
 export async function getListDocuments(
   limit: number
 ): Promise<ListDocument[] | null> {
+  const location: Location | null = LocalStorage.GetGuDong();
+  if (location == null) return null;
+
   const { data, error } = await supabase
     .from("Documents")
     .select(
@@ -29,6 +38,8 @@ export async function getListDocuments(
       title,
       location,
       stars,
+      gu,
+      dong,
       Hashtags(id, content),
       Sections(
         section_key,
@@ -41,6 +52,9 @@ export async function getListDocuments(
       )
     `
     )
+    .filter("gu", "eq", location.gu)
+    .filter("dong", "eq", location.dong)
+    .filter("Sections.section_key", "eq", "introduction")
     .limit(limit)
     .order("created_at", { ascending: false });
 

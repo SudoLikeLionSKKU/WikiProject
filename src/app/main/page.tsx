@@ -1,8 +1,27 @@
+"use client";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 import Link from "next/link";
+import { LocalStorage } from "@/lib/localStorage";
+import { getListDocuments, getPopularDocuments } from "@/lib/fetcher";
 
 export default function Home() {
+  const router = useRouter();
+
+  useEffect(() => {
+    (async (): Promise<void> => {
+      if (!LocalStorage.ValidateGuDong()) {
+        router.push("/");
+        return;
+      }
+      const 최근문서 = await getListDocuments(4);
+      console.log(최근문서);
+      const 인기문서 = await getPopularDocuments(2);
+      console.log(인기문서);
+    })();
+  }, []);
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-800">
       {/* Header */}
