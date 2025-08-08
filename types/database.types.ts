@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       Documents: {
         Row: {
+          category: string
           created_at: string | null
           created_by: string
           dong: string
@@ -26,6 +27,7 @@ export type Database = {
           title: string
         }
         Insert: {
+          category: string
           created_at?: string | null
           created_by: string
           dong: string
@@ -36,6 +38,7 @@ export type Database = {
           title: string
         }
         Update: {
+          category?: string
           created_at?: string | null
           created_by?: string
           dong?: string
@@ -202,6 +205,7 @@ export type Database = {
               doc_gu: string
               doc_title: string
               doc_location: string
+              doc_category: string
               intro_content: string
               feature_content: string
               additional_info_content: string

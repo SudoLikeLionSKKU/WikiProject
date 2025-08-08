@@ -28,11 +28,7 @@ export abstract class LocalStorage {
     //저장된 장소가 실제 내가 있는 위치가 아니라면
     const realLocation: Location | null = await NaverMap.GetAddress();
 
-    if (
-      realLocation == null ||
-      realLocation.gu != guDong.gu ||
-      realLocation.dong != guDong.dong
-    ) {
+    if (realLocation == null || realLocation.gu != guDong.gu) {
       return false;
     }
     return true;
