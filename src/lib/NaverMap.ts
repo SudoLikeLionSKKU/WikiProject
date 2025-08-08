@@ -16,13 +16,7 @@ export abstract class NaverMap {
     const url = `${baseUrl}/api/naver-map?coords=${longitude},${latitude}&output=json&orders=roadaddr`;
 
     try {
-      const response = await fetch(url, {
-        method: "GET",
-        headers: {
-          "X-NCP-APIGW-API-KEY-ID": this.API_KEY_ID ?? "",
-          "X-NCP-APIGW-API-KEY": this.API_KEY ?? "",
-        },
-      });
+      const response = await fetch(url);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
