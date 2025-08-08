@@ -18,7 +18,8 @@ import {
   InsertHashtagDto,
   CreateDocumentDto,
 } from "../../types/dto";
-import { LocalStorage, Location } from "./localStorage";
+import { LocalStorage } from "./localStorage";
+import { Location } from "../../types/basic";
 
 export async function getPopularDocuments(
   limit: number

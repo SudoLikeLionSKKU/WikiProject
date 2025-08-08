@@ -1,7 +1,16 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
-  /* config options here */
+// next.config.js
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  async rewrites() {
+    return [
+      {
+        source: "/api/naver-map/:path*",
+        destination: `https://maps.apigw.ntruss.com/map-reversegeocode/v2/gc/:path*`,
+      },
+    ];
+  },
 };
 
-export default nextConfig;
+module.exports = nextConfig;
