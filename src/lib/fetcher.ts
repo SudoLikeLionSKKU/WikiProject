@@ -41,40 +41,49 @@ export async function getPopularDocuments(
 }
 
 export async function getListDocuments(
-  limit: number
+  limit: number,
+  category?: string
 ): Promise<ListDocument[] | null> {
   const location: Location | null = LocalStorage.GetGuDong();
   if (location == null) return null;
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("Documents")
     .select(
       `
-      id,
-      created_at,
-      created_by,
-      title,
-      location,
-      stars,
+      id,
+      created_at,
+      created_by,
+      title,
+      location,
+      stars,
       gu,
       dong,
-      Hashtags(id, content),
-      Sections(
-        section_key,
-        SectionRevisions!Sections_current_revision_id_fkey(
-        id, 
-        created_at, 
-        content, 
-        section_id
-        )
-      )
-    `
+      category,
+      Hashtags(id, content),
+      Sections(
+        section_key,
+        SectionRevisions!Sections_current_revision_id_fkey(
+        id, 
+        created_at, 
+        content, 
+        section_id
+        )
+      )
+    `
     )
     .filter("gu", "eq", location.gu)
     .filter("dong", "eq", location.dong)
     .filter("Sections.section_key", "eq", "introduction")
     .limit(limit)
     .order("created_at", { ascending: false });
+
+  // category 값이 있을 때만 필터링을 추가합니다.
+  if (category) {
+    query = query.filter("category", "eq", category);
+  }
+
+  const { data, error } = await query;
 
   if (error) throw error;
 
@@ -108,6 +117,7 @@ export async function getDetailDocument(
       stars,
       gu,
       dong,
+      category,
       Hashtags(id, content, document_id, created_at),
       Reviews(id, created_at, created_by, content, document_id),
       Sections(

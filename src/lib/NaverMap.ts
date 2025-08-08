@@ -24,8 +24,6 @@ export abstract class NaverMap {
       }
 
       const data = await response.json();
-      console.log(data);
-
       if (data.results && data.results.length > 0) {
         return {
           gu: data.results[0].region.area2.name,
