@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/naver-map/:path*",
+      "destination": "https://maps.apigw.ntruss.com/map-reversegeocode/v2/gc/:path*"
+    }
+  ]
+}

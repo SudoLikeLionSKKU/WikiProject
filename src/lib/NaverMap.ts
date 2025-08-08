@@ -8,12 +8,7 @@ export abstract class NaverMap {
     longitude: number,
     latitude: number
   ): Promise<Location | null> {
-    const isProduction = process.env.NEXT_PUBLIC_ENV === "production";
-    const baseUrl = isProduction
-      ? "https://maps.apigw.ntruss.com/map-reversegeocode/v2/gc"
-      : "";
-
-    const url = `${baseUrl}/api/naver-map?coords=${longitude},${latitude}&output=json&orders=roadaddr`;
+    const url = `/api/naver-map?coords=${longitude},${latitude}&output=json&orders=roadaddr`;
 
     try {
       const response = await fetch(url, {
