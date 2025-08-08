@@ -1,7 +1,5 @@
-export type Location = {
-  gu: string;
-  dong: string;
-};
+import { Location } from "../../types/basic";
+import { NaverMap } from "./NaverMap";
 
 export abstract class LocalStorage {
   private static gu_key = "gu";
@@ -9,8 +7,8 @@ export abstract class LocalStorage {
   private static favorite_key = "favorite_key";
 
   public static SetGuDong(guDong: Location): void {
-    localStorage.setItem(this.gu_key, guDong.gu);
-    localStorage.setItem(this.dong_key, guDong.dong);
+    localStorage.setItem(this.gu_key, guDong.gu.trim());
+    localStorage.setItem(this.dong_key, guDong.dong.trim());
   }
 
   public static GetGuDong(): Location | null {
@@ -22,12 +20,21 @@ export abstract class LocalStorage {
     return null;
   }
 
-  public static ValidateGuDong(): boolean {
+  public static async ValidateGuDong(): Promise<boolean> {
     //LocalStorage에 저장된 장소가 아니면
-    if (this.GetGuDong() == null) return false;
+    const guDong: Location | null = this.GetGuDong();
+    if (guDong == null) return false;
 
     //저장된 장소가 실제 내가 있는 위치가 아니라면
+    const realLocation: Location | null = await NaverMap.GetAddress();
 
+    if (
+      realLocation == null ||
+      realLocation.gu != guDong.gu ||
+      realLocation.dong != guDong.dong
+    ) {
+      return false;
+    }
     return true;
   }
 

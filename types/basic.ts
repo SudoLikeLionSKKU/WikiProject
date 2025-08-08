@@ -1,5 +1,10 @@
 import { Database } from "./database.types";
 
+export type Location = {
+  gu: string;
+  dong: string;
+};
+
 /**
  * @description Document 원시 자료에 대한 타입 정의입니다.
  * Document 자체는 상세 내용을 포함하지 않고 있으며 해당 Document에 대한 상세정보는 Section, SectionRivison을 통해 저장됩니다.

@@ -5,6 +5,7 @@ import { useEffect } from "react";
 
 import Link from "next/link";
 import { LocalStorage } from "@/lib/localStorage";
+import { NaverMap } from "@/lib/NaverMap";
 import {
   getListDocuments,
   getPopularDocuments,
@@ -18,7 +19,8 @@ export default function Home() {
 
   useEffect(() => {
     (async (): Promise<void> => {
-      if (!LocalStorage.ValidateGuDong()) {
+      const result: boolean = await LocalStorage.ValidateGuDong();
+      if (!result) {
         router.push("/");
         return;
       }
