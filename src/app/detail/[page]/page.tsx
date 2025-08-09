@@ -1,3 +1,201 @@
+"use client";
+
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { getDetailDocument } from "@/lib/fetcher";
+import type { DetailDocument } from "../../../../types/complex";
+
+type DetailVM = {
+  intro?: string;
+  feature?: string;
+  additional?: string;
+  hashtags?: string[];
+};
+
+function toVM(d: DetailDocument): DetailVM {
+  return {
+    intro: (d as any).intro_content ?? (d as any).intro,
+    feature: (d as any).feature_content ?? (d as any).feature,
+    additional:
+      (d as any).additional_info_content ?? (d as any).additional ?? (d as any).extra,
+    hashtags: (d as any).hashtags_content ?? (d as any).hashtags ?? [],
+  };
+}
+
 export default function Detail() {
-  return <>Hello World For Detail Page</>;
+  const { page } = useParams<{ page: string }>();
+  const [doc, setDoc] = useState<DetailVM | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    let ignore = false;
+    (async () => {
+      try {
+        setLoading(true);
+        setErr(null);
+        const id = Number(page);
+        const data = (await getDetailDocument(id)) as DetailDocument | null;
+        if (!ignore) setDoc(data ? toVM(data) : null);
+      } catch {
+        if (!ignore) setErr("문서를 불러오는 중 오류가 발생했습니다.");
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    })();
+    return () => {
+      ignore = true;
+    };
+  }, [page]);
+
+  return (
+    <>
+      {/* 최상단 고정 헤더 */}
+      <header className="fixed inset-x-0 top-0 z-40 h-12 border-b border-gray-200 bg-white">
+        <div className="mx-auto flex h-full max-w-7xl items-center justify-between px-4">
+          {/* 좌측: 제목 (클릭 시 이 상세 페이지로 이동) */}
+          <Link
+            href={`/detail/${page}`}
+            className="text-base font-bold text-gray-900 hover:underline"
+          >
+            성대커피
+          </Link>
+
+          {/* 우측: 버튼 2개 */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 active:scale-[0.98] transition"
+              aria-label="편집"
+            >
+              편집
+            </button>
+            <button
+              type="button"
+              className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 active:scale-[0.98] transition"
+              aria-label="즐겨찾기"
+            >
+              즐겨찾기
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* 헤더 높이만큼 여백 확보 */}
+      <div className="pt-14 flex min-h-screen bg-gray-50">
+        {/* 왼쪽 사이드바 */}
+        <aside className="w-64 bg-white shadow-sm border-r p-4">
+          <h2 className="text-lg font-semibold mb-3">기본 정보</h2>
+
+          {/* 위치 + 거리 (고정 텍스트) */}
+          <div className="mb-4 flex items-center text-sm text-gray-700">
+            <svg
+              className="mr-2 h-4 w-4 shrink-0 text-gray-700"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path d="M11 2a1 1 0 0 1 2 0v1.055A8.002 8.002 0 0 1 20.945 11H22a1 1 0 1 1 0 2h-1.055A8.002 8.002 0 0 1 13 20.945V22a1 1 0 1 1-2 0v-1.055A8.002 8.002 0 0 1 3.055 13H2a1 1 0 1 1 0-2h1.055A8.002 8.002 0 0 1 11 3.055V2Zm1 4a6 6 0 1 0 0 12 6 6 0 0 0 0-12ZM8 12a4 4 0 1 1 8 0 4 4 0 0 1-8 0Z" />
+            </svg>
+            <span className="truncate">혜화동 · 450m</span>
+          </div>
+
+          {/* 해시태그 */}
+          <div className="mb-6 flex flex-wrap gap-2">
+            {(doc?.hashtags?.length
+              ? doc.hashtags
+              : ["#조용함", "#스터디카페", "#콘센트", "#테라스"])!.map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                className="rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 active:scale-[0.98] transition"
+                aria-label={`${tag} 필터`}
+              >
+                {String(tag).startsWith("#") ? tag : `#${tag}`}
+              </button>
+            ))}
+          </div>
+
+          {/* 목차 */}
+          <h3 className="text-sm font-semibold text-gray-800 mb-2">목차</h3>
+          <nav className="flex flex-col gap-1 text-sm">
+            {[
+              { i: 1, t: "소개", id: "intro" },
+              { i: 2, t: "특징", id: "feature" },
+              { i: 3, t: "방문객 의견", id: "reviews" },
+              { i: 4, t: "추가 정보", id: "more" },
+            ].map((sec) => (
+              <button
+                key={sec.i}
+                type="button"
+                onClick={() => {
+                  const el = document.getElementById(sec.id);
+                  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+                className="w-full rounded-md px-2 py-1 text-left text-gray-700 hover:bg-gray-50 active:scale-[0.98] transition"
+                aria-label={`${sec.t}로 이동`}
+              >
+                {sec.i}. {sec.t}
+              </button>
+            ))}
+          </nav>
+        </aside>
+
+        {/* 메인 */}
+        <main className="flex-1 p-6">
+          <header className="flex items-center justify-between mb-6">
+            <span className="text-sm text-gray-500">문서 번호: {page}</span>
+          </header>
+
+          {err && (
+            <div className="mb-6 rounded border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              {err}
+            </div>
+          )}
+          {loading && !doc && (
+            <div className="mb-8 animate-pulse space-y-4">
+              <div className="h-6 w-40 rounded bg-gray-200" />
+              <div className="h-24 rounded bg-gray-200" />
+              <div className="h-6 w-28 rounded bg-gray-200" />
+              <div className="h-24 rounded bg-gray-200" />
+            </div>
+          )}
+
+          {/* 소개 */}
+          <section id="intro" className="mb-8 scroll-mt-16">
+            <h2 className="text-xl font-semibold mb-2">소개</h2>
+            <div className="rounded border bg-white p-4">
+              {doc?.intro ?? "소개 내용이 없습니다."}
+            </div>
+          </section>
+
+          {/* 특징 */}
+          <section id="feature" className="mb-8 scroll-mt-16">
+            <h2 className="text-xl font-semibold mb-2">특징</h2>
+            <div className="rounded border bg-white p-4">
+              {doc?.feature ?? "특징 정보가 없습니다."}
+            </div>
+          </section>
+
+          {/* 방문객 의견 */}
+          <section id="reviews" className="mb-8 scroll-mt-16">
+            <h2 className="text-xl font-semibold mb-3">방문객 의견</h2>
+            <div className="space-y-3">
+              <div className="rounded border bg-white p-4 text-gray-500">추후 연동 예정</div>
+            </div>
+          </section>
+
+          {/* 추가 정보 */}
+          <section id="more" className="mb-16 scroll-mt-16">
+            <h2 className="text-xl font-semibold mb-2">추가 정보</h2>
+            <div className="rounded border bg-white p-4">
+              {doc?.additional ?? "추가 정보가 없습니다."}
+            </div>
+          </section>
+        </main>
+      </div>
+    </>
+  );
 }
