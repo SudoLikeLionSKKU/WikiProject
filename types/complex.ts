@@ -28,3 +28,4 @@ export interface DetailDocument extends DocumentType {
   additionalInfo: SectionRevisionType | null | undefined;
   reviews: ReviewType[];
 }
+export type { DocumentType };
