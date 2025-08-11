@@ -124,7 +124,8 @@ export async function getDetailDocument(
         section_key,
         SectionRevisions!Sections_current_revision_id_fkey(
         id, 
-        created_at, 
+        created_at,
+        created_by,
         content, 
         section_id
         )
