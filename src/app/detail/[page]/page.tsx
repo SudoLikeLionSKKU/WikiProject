@@ -7,30 +7,13 @@ import { getDetailDocument } from "@/lib/fetcher";
 import { LocalStorage } from "@/lib/localStorage"; // 파일명이 loalStorage.ts이면 경로를 "@/lib/loalStorage" 로
 import type { DetailDocument } from "../../../../types/complex";
 
-type DetailVM = {
-  intro?: string;
-  feature?: string;
-  additional?: string;
-  hashtags?: string[];
-};
-
-function toVM(d: DetailDocument): DetailVM {
-  return {
-    intro: (d as any).intro_content ?? (d as any).intro,
-    feature: (d as any).feature_content ?? (d as any).feature,
-    additional:
-      (d as any).additional_info_content ?? (d as any).additional ?? (d as any).extra,
-    hashtags: (d as any).hashtags_content ?? (d as any).hashtags ?? [],
-  };
-}
-
 const toKey = (v: string | number | undefined) => String(v ?? "");
 
 export default function Detail() {
   const { page } = useParams<{ page: string }>();
   const docKey = toKey(page);
 
-  const [doc, setDoc] = useState<DetailVM | null>(null);
+  const [doc, setDoc] = useState<DetailDocument | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
@@ -44,8 +27,10 @@ export default function Detail() {
       try {
         setLoading(true);
         setErr(null);
-        const data = (await getDetailDocument(Number(page))) as DetailDocument | null;
-        if (!ignore) setDoc(data ? toVM(data) : null);
+        const data = (await getDetailDocument(
+          Number(page)
+        )) as DetailDocument | null;
+        if (!ignore) setDoc(data ?? null);
       } catch {
         if (!ignore) setErr("문서를 불러오는 중 오류가 발생했습니다.");
       } finally {
@@ -115,8 +100,11 @@ export default function Detail() {
       <header className="fixed inset-x-0 top-0 z-40 h-12 border-b border-gray-200 bg-white">
         <div className="mx-auto flex h-full max-w-7xl items-center justify-between px-4">
           {/* 좌측: 제목(클릭 시 현재 상세로 이동) */}
-          <Link href={`/detail/${page}`} className="text-base font-bold text-gray-900 hover:underline">
-            성대커피
+          <Link
+            href={`/detail/${page}`}
+            className="text-base font-bold text-gray-900 hover:underline"
+          >
+            {doc?.title}
           </Link>
 
           {/* 우측: 편집 / 즐겨찾기 */}
@@ -135,18 +123,34 @@ export default function Detail() {
               aria-pressed={isFav}
               aria-label="즐겨찾기"
               className={`flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-medium active:scale-[0.98] transition
-                ${isFav
-                  ? "border border-yellow-300 bg-yellow-50 text-yellow-700 hover:bg-yellow-100"
-                  : "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"}`}
+                ${
+                  isFav
+                    ? "border border-yellow-300 bg-yellow-50 text-yellow-700 hover:bg-yellow-100"
+                    : "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                }`}
               title={isFav ? "즐겨찾기 해제" : "즐겨찾기 추가"}
             >
               {isFav ? (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M11.48 3.499a1 1 0 0 1 1.04 0l3.22 1.94 3.6.52a1 1 0 0 1 .56 1.7l-2.6 2.54.61 3.57a1 1 0 0 1-1.45 1.05L12 14.77l-3.21 1.69a1 1 0 0 1-1.45-1.05l.61-3.57-2.6-2.54a1 1 0 0 1 .56-1.7l3.6-.52 3.22-1.94Z"/>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path d="M11.48 3.499a1 1 0 0 1 1.04 0l3.22 1.94 3.6.52a1 1 0 0 1 .56 1.7l-2.6 2.54.61 3.57a1 1 0 0 1-1.45 1.05L12 14.77l-3.21 1.69a1 1 0 0 1-1.45-1.05l.61-3.57-2.6-2.54a1 1 0 0 1 .56-1.7l3.6-.52 3.22-1.94Z" />
                 </svg>
               ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none">
-                  <path d="M11.48 3.499a1 1 0 0 1 1.04 0l3.22 1.94 3.6.52a1 1 0 0 1 .56 1.7l-2.6 2.54.61 3.57a1 1 0 0 1-1.45 1.05L12 14.77l-3.21 1.69a1 1 0 0 1-1.45-1.05l.61-3.57-2.6-2.54a1 1 0 0 1 .56-1.7l3.6-.52 3.22-1.94Z" stroke="currentColor" strokeWidth="1.5"/>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                >
+                  <path
+                    d="M11.48 3.499a1 1 0 0 1 1.04 0l3.22 1.94 3.6.52a1 1 0 0 1 .56 1.7l-2.6 2.54.61 3.57a1 1 0 0 1-1.45 1.05L12 14.77l-3.21 1.69a1 1 0 0 1-1.45-1.05l.61-3.57-2.6-2.54a1 1 0 0 1 .56-1.7l3.6-.52 3.22-1.94Z"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                  />
                 </svg>
               )}
               <span>{isFav ? "즐겨찾기됨" : "즐겨찾기"}</span>
@@ -172,21 +176,21 @@ export default function Detail() {
             >
               <path d="M11 2a1 1 0 0 1 2 0v1.055A8.002 8.002 0 0 1 20.945 11H22a1 1 0 1 1 0 2h-1.055A8.002 8.002 0 0 1 13 20.945V22a1 1 0 1 1-2 0v-1.055A8.002 8.002 0 0 1 3.055 13H2a1 1 0 1 1 0-2h1.055A8.002 8.002 0 0 1 11 3.055V2Zm1 4a6 6 0 1 0 0 12 6 6 0 0 0 0-12ZM8 12a4 4 0 1 1 8 0 4 4 0 0 1-8 0Z" />
             </svg>
-            <span className="truncate">혜화동 · 450m</span>
+            <span className="truncate">{doc?.location}</span>
           </div>
 
           {/* 해시태그 */}
           <div className="mb-6 flex flex-wrap gap-2">
-            {(doc?.hashtags?.length
-              ? doc.hashtags
-              : ["#조용함", "#스터디카페", "#콘센트", "#테라스"])!.map((tag) => (
+            {doc?.Hashtags.map((item) => (
               <button
-                key={tag}
+                key={item.id}
                 type="button"
                 className="rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 active:scale-[0.98] transition"
-                aria-label={`${tag} 필터`}
+                aria-label={`${item.content} 필터`}
               >
-                {String(tag).startsWith("#") ? tag : `#${tag}`}
+                {String(item.content).startsWith("#")
+                  ? item.content
+                  : `#${item.content}`}
               </button>
             ))}
           </div>
@@ -205,7 +209,8 @@ export default function Detail() {
                 type="button"
                 onClick={() => {
                   const el = document.getElementById(sec.id);
-                  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                  if (el)
+                    el.scrollIntoView({ behavior: "smooth", block: "start" });
                 }}
                 className="w-full rounded-md px-2 py-1 text-left text-gray-700 hover:bg-gray-50 active:scale-[0.98] transition"
                 aria-label={`${sec.t}로 이동`}
@@ -218,10 +223,6 @@ export default function Detail() {
 
         {/* 메인 */}
         <main className="flex-1 p-6">
-          <header className="flex items-center justify-between mb-6">
-            <span className="text-sm text-gray-500">문서 번호: {page}</span>
-          </header>
-
           {err && (
             <div className="mb-6 rounded border border-red-200 bg-red-50 p-4 text-sm text-red-700">
               {err}
@@ -240,7 +241,8 @@ export default function Detail() {
           <section id="intro" className="mb-8 scroll-mt-16">
             <h2 className="text-xl font-semibold mb-2">소개</h2>
             <div className="rounded border bg-white p-4">
-              {doc?.intro ?? "소개 내용이 없습니다."}
+              {doc?.introduction?.content ?? "소개 내용이 없습니다."} (
+              {doc?.introduction?.created_by} / {doc?.introduction?.created_at})
             </div>
           </section>
 
@@ -248,7 +250,8 @@ export default function Detail() {
           <section id="feature" className="mb-8 scroll-mt-16">
             <h2 className="text-xl font-semibold mb-2">특징</h2>
             <div className="rounded border bg-white p-4">
-              {doc?.feature ?? "특징 정보가 없습니다."}
+              {doc?.feature?.content ?? "특징 정보가 없습니다."} (
+              {doc?.feature?.created_by} / {doc?.feature?.created_at})
             </div>
           </section>
 
@@ -256,7 +259,11 @@ export default function Detail() {
           <section id="reviews" className="mb-8 scroll-mt-16">
             <h2 className="text-xl font-semibold mb-3">방문객 의견</h2>
             <div className="space-y-3">
-              <div className="rounded border bg-white p-4 text-gray-500">추후 연동 예정</div>
+              {doc?.reviews?.map((review) => (
+                <div className="rounded border bg-white p-4 text-gray-500">
+                  {review.content} ({review.created_by}/{review.created_at})
+                </div>
+              ))}
             </div>
           </section>
 
@@ -264,7 +271,9 @@ export default function Detail() {
           <section id="more" className="mb-16 scroll-mt-16">
             <h2 className="text-xl font-semibold mb-2">추가 정보</h2>
             <div className="rounded border bg-white p-4">
-              {doc?.additional ?? "추가 정보가 없습니다."}
+              {doc?.additionalInfo?.content ?? "추가 정보가 없습니다."} (
+              {doc?.additionalInfo?.created_by} /{" "}
+              {doc?.additionalInfo?.created_at})
             </div>
           </section>
         </main>
