@@ -7,6 +7,37 @@ import { getDetailDocument } from "@/lib/fetcher";
 import { LocalStorage } from "@/lib/localStorage"; // 파일명이 loalStorage.ts이면 경로를 "@/lib/loalStorage" 로
 import type { DetailDocument } from "../../../../types/complex";
 
+type MaybeObj = { content?: unknown; name?: unknown; tag?: unknown } & Record<string, unknown>;
+
+const pickText = (v: unknown): string => {
+  if (v == null) return "";
+  if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") return String(v);
+
+  if (Array.isArray(v)) {
+    // 배열이면 각 요소를 재귀로 문자열화 후 빈값 제거하고 줄바꿈으로 합침
+    return v.map(pickText).filter(Boolean).join("\n\n");
+  }
+
+  if (typeof v === "object") {
+    const o = v as MaybeObj;
+    // 흔한 케이스: { id, content, ... }
+    if (o.content != null) return pickText(o.content);
+    // 혹시 다른 키로 텍스트를 담는 경우까지 커버
+    if (o.name != null) return pickText(o.name);
+    if (o.tag != null) return pickText(o.tag);
+  }
+
+  // 마지막 방어
+  try { return JSON.stringify(v); } catch { return String(v); }
+};
+
+const pickTags = (v: unknown): string[] => {
+  if (v == null) return [];
+  if (Array.isArray(v)) return v.map(pickText).filter(Boolean);
+  // 단일 값이면 1개짜리 배열로
+  return [pickText(v)].filter(Boolean);
+};
+
 type DetailVM = {
   intro?: string;
   feature?: string;
@@ -15,14 +46,25 @@ type DetailVM = {
 };
 
 function toVM(d: DetailDocument): DetailVM {
+  // 다양한 백엔드 필드명 변형을 방어적으로 처리
+  const introRaw =
+    (d as any).intro_content ?? (d as any).intro ?? (d as any).introParagraphs;
+  const featureRaw =
+    (d as any).feature_content ?? (d as any).feature ?? (d as any).body;
+  const additionalRaw =
+    (d as any).additional_info_content ?? (d as any).additional ?? (d as any).extra;
+
+  const hashtagsRaw =
+    (d as any).hashtags_content ?? (d as any).hashtags ?? (d as any).tags ?? [];
+
   return {
-    intro: (d as any).intro_content ?? (d as any).intro,
-    feature: (d as any).feature_content ?? (d as any).feature,
-    additional:
-      (d as any).additional_info_content ?? (d as any).additional ?? (d as any).extra,
-    hashtags: (d as any).hashtags_content ?? (d as any).hashtags ?? [],
+    intro: pickText(introRaw),
+    feature: pickText(featureRaw),
+    additional: pickText(additionalRaw),
+    hashtags: pickTags(hashtagsRaw),
   };
 }
+
 
 const toKey = (v: string | number | undefined) => String(v ?? "");
 
