@@ -12,5 +12,9 @@ export type InsertSectionRevisionDto =
 export type InsertHashtagDto =
   Database["public"]["Tables"]["Hashtags"]["Insert"];
 
-export type CreateDocumentDto =
+export type CreateDocumentRpcArgs =
   Database["public"]["Functions"]["create_document_full_transaction"]["Args"];
+
+export type CreateDocumentDto = CreateDocumentRpcArgs & {
+  doc_category: string;
+};

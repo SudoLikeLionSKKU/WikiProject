@@ -6,10 +6,7 @@ import {
 } from "../../types/complex";
 import {
   DocumentType,
-  HashtagType,
-  SECTION_KEY_ADDITIONAL_INFO,
-  SECTION_KEY_FEATURE,
-  SECTION_KEY_INTRODUCTION,
+  Location,
 } from "../../types/basic";
 import {
   InsertDocumentDto,
@@ -19,8 +16,8 @@ import {
   CreateDocumentDto,
 } from "../../types/dto";
 import { LocalStorage } from "./localStorage";
-import { Location } from "../../types/basic";
 
+/* 인기 문서 */
 export async function getPopularDocuments(
   limit: number
 ): Promise<DocumentType[] | null> {
@@ -40,6 +37,7 @@ export async function getPopularDocuments(
   return data;
 }
 
+/* 최근 문서 리스트 (카테고리 선택 가능) */
 export async function getListDocuments(
   limit: number,
   category?: string
@@ -64,10 +62,10 @@ export async function getListDocuments(
       Sections(
         section_key,
         SectionRevisions!Sections_current_revision_id_fkey(
-        id, 
-        created_at, 
-        content, 
-        section_id
+          id, 
+          created_at, 
+          content, 
+          section_id
         )
       )
     `
@@ -78,13 +76,11 @@ export async function getListDocuments(
     .limit(limit)
     .order("created_at", { ascending: false });
 
-  // category 값이 있을 때만 필터링을 추가합니다.
   if (category) {
     query = query.filter("category", "eq", category);
   }
 
   const { data, error } = await query;
-
   if (error) throw error;
 
   const transformedData = data.map((doc: any) => {
@@ -102,6 +98,7 @@ export async function getListDocuments(
   return transformedData;
 }
 
+/* 상세 문서 (단일 리비전 + document_id 주입) */
 export async function getDetailDocument(
   document_id: number
 ): Promise<DetailDocument | null> {
@@ -121,15 +118,15 @@ export async function getDetailDocument(
       Hashtags(id, content, document_id, created_at),
       Reviews(id, created_at, created_by, content, document_id),
       Sections(
-        section_key,
-        SectionRevisions!Sections_current_revision_id_fkey(
-        id, 
-        created_at,
-        created_by,
-        content, 
-        section_id
-        )
-      )
+        section_key,
+        SectionRevisions!Sections_current_revision_id_fkey(
+          id,
+          created_at,
+          created_by,
+          content,
+          section_id
+        )
+      )
     `
     )
     .eq("id", document_id)
@@ -137,35 +134,55 @@ export async function getDetailDocument(
 
   if (error) {
     if (error.code === "PGRST116") {
-      // PGRST116 에러 코드는 데이터가 없을 때 발생합니다.
+      // 문서 없음
       return null;
     }
     throw error;
   }
 
   const introSection = data.Sections.find(
-    (s: any) => s.section_key == "introduction"
+    (s: any) => s.section_key === "introduction"
   );
-
   const featureSection = data.Sections.find(
-    (s: any) => s.section_key == "feature"
+    (s: any) => s.section_key === "feature"
+  );
+  const additionalInfoSection = data.Sections.find(
+    (s: any) => s.section_key === "additionalInfo"
   );
 
-  const additionalInfoSection = data.Sections.find(
-    (s: any) => s.section_key == "additionalInfo"
-  );
+  // DetailDocument이 기대하는 정확한 필드로 매핑
+  type RevShape = {
+    id: number;
+    created_at: string;
+    created_by: string;
+    content: string | null;
+    section_id: number;
+    document_id: number;
+  };
+
+  const withDocId = (rev?: any, docId?: number): RevShape | null => {
+    if (!rev || docId == null) return null;
+    return {
+      id: rev.id as number,
+      created_at: rev.created_at as string,
+      created_by: (rev.created_by ?? "") as string, // null 보호
+      content: (rev.content ?? null) as string | null,
+      section_id: rev.section_id as number,
+      document_id: docId,
+    };
+  };
 
   return {
     ...data,
     Hashtags: data.Hashtags,
-    introduction: introSection?.SectionRevisions,
-    feature: featureSection?.SectionRevisions,
-    additionalInfo: additionalInfoSection?.SectionRevisions,
+    introduction: withDocId(introSection?.SectionRevisions, data.id),
+    feature: withDocId(featureSection?.SectionRevisions, data.id),
+    additionalInfo: withDocId(additionalInfoSection?.SectionRevisions, data.id),
     reviews: data.Reviews ?? [],
   };
 }
 
-// 클라이언트 코드
+/* 문서 생성 (RPC) */
 export async function createDocument(dto: CreateDocumentDto): Promise<number> {
   const { data: document_id, error } = await supabase.rpc(
     "create_document_full_transaction",
@@ -183,6 +200,8 @@ export async function createDocument(dto: CreateDocumentDto): Promise<number> {
     throw new Error("문서 ID를 반환받지 못했습니다.");
   }
 }
+
+/* --- 아래는 직접 테이블에 쓰는 로우레벨 함수들(필요 시 사용) --- */
 
 async function insertDocument(dto: InsertDocumentDto): Promise<number> {
   const { data, error } = await supabase
@@ -212,7 +231,7 @@ async function UpdateSectionCurrentReivisonId(
   section_id: number,
   revision_id: number
 ): Promise<void> {
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from("Sections")
     .update({
       current_revision_id: revision_id,
