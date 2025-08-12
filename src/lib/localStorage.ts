@@ -59,7 +59,7 @@ export abstract class LocalStorage {
     if (data == null) return;
 
     let favorites: string[] = JSON.parse(data) as string[];
-    favorites = favorites.filter((s) => s != data);
+    favorites = favorites.filter((s) => s != document_id);
     localStorage.setItem(this.favorite_key, JSON.stringify([...favorites]));
   }
 }
