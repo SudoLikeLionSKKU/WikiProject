@@ -53,4 +53,13 @@ export abstract class LocalStorage {
       JSON.stringify([...favorites, document_id])
     );
   }
+
+  public static RemoveFavorites(document_id: string): void {
+    const data: string | null = localStorage.getItem(this.favorite_key);
+    if (data == null) return;
+
+    let favorites: string[] = JSON.parse(data) as string[];
+    favorites = favorites.filter((s) => s != data);
+    localStorage.setItem(this.favorite_key, JSON.stringify([...favorites]));
+  }
 }
