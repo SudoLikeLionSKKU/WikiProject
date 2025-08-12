@@ -4,10 +4,7 @@ import {
   DetailSection,
   DetailDocument,
 } from "../../types/complex";
-import {
-  DocumentType,
-  Location,
-} from "../../types/basic";
+import { DocumentType, Location } from "../../types/basic";
 import {
   InsertDocumentDto,
   InsertSectionDto,
@@ -124,7 +121,8 @@ export async function getDetailDocument(
           created_at,
           created_by,
           content,
-          section_id
+          section_id,
+          document_id
         )
       )
     `
@@ -175,9 +173,9 @@ export async function getDetailDocument(
   return {
     ...data,
     Hashtags: data.Hashtags,
-    introduction: withDocId(introSection?.SectionRevisions, data.id),
-    feature: withDocId(featureSection?.SectionRevisions, data.id),
-    additionalInfo: withDocId(additionalInfoSection?.SectionRevisions, data.id),
+    introduction: introSection?.SectionRevisions,
+    feature: featureSection?.SectionRevisions,
+    additionalInfo: additionalInfoSection?.SectionRevisions,
     reviews: data.Reviews ?? [],
   };
 }
