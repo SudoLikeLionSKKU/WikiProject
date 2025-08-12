@@ -1,21 +1,61 @@
 "use client";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import Link from "next/link";
 import { LocalStorage } from "@/lib/localStorage";
-import { NaverMap } from "@/lib/NaverMap";
 import {
   getListDocuments,
   getPopularDocuments,
   createDocument,
   getDetailDocument,
 } from "@/lib/fetcher";
-import { DetailDocument } from "../../../types/complex";
+import { ListDocument, DocumentType } from "../../../types/complex";
+
+/* 상대시간 유틸 */
+function timeAgo(iso?: string | null) {
+  if (!iso) return "";
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return "";
+
+  const diff = Math.max(0, Date.now() - t);
+  const sec = Math.floor(diff / 1000);
+  if (sec < 5) return "방금 전";
+  if (sec < 60) return `${sec}초 전`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}분 전`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}시간 전`;
+  const day = Math.floor(hr / 24);
+  if (day < 7) return `${day}일 전`;
+  const week = Math.floor(day / 7);
+  if (week < 5) return `${week}주 전`;
+  const month = Math.floor(day / 30);
+  if (month < 12) return `${month}달 전`;
+  const year = Math.floor(day / 365);
+  return `${year}년 전`;
+}
+
+/* 최신 시점 고르기 */
+function pickLatestISO(...dates: Array<string | null | undefined>): string | null {
+  const ts = dates
+    .filter(Boolean)
+    .map((d) => new Date(d as string).getTime())
+    .filter((n) => !Number.isNaN(n));
+  if (ts.length === 0) return null;
+  return new Date(Math.max(...ts)).toISOString();
+}
+
+/* editedAt(수정 기준 시점) 포함 로컬 타입 */
+type WithEdited<T> = T & { editedAt: string | null };
 
 export default function Home() {
   const router = useRouter();
+
+  // 문서 리스트 상태(수정시점 포함)
+  const [recentDocs, setRecentDocs] = useState<WithEdited<ListDocument>[]>([]);
+  const [popularDocs, setPopularDocs] = useState<WithEdited<DocumentType>[]>([]);
 
   useEffect(() => {
     (async (): Promise<void> => {
@@ -24,16 +64,50 @@ export default function Home() {
         router.push("/");
         return;
       }
-      const 최근문서 = await getListDocuments(4, "카페");
-      console.log(최근문서);
-      const 인기문서 = await getPopularDocuments(2);
-      console.log(인기문서);
-      const 제순식당 = await getDetailDocument(5);
-      console.log(제순식당);
+
+      // 원래대로 가져오기
+      const 최근문서 = (await getListDocuments(4)) || [];
+      const 인기문서 = (await getPopularDocuments(2)) || [];
+
+      // 각 항목의 최신 수정시점 계산 (detail 조회로 최신 섹션 리비전 포함)
+      const recentWithEdited: WithEdited<ListDocument>[] = await Promise.all(
+        최근문서.map(async (doc) => {
+          const detail = await getDetailDocument(doc.id);
+          const editedAt = pickLatestISO(
+            detail?.introduction?.created_at,
+            detail?.feature?.created_at,
+            detail?.additionalInfo?.created_at,
+            detail?.created_at ?? doc.created_at
+          );
+          return { ...doc, editedAt };
+        })
+      );
+
+      const popularWithEdited: WithEdited<DocumentType>[] = await Promise.all(
+        인기문서.map(async (doc) => {
+          const detail = await getDetailDocument(doc.id);
+          const editedAt = pickLatestISO(
+            detail?.introduction?.created_at,
+            detail?.feature?.created_at,
+            detail?.additionalInfo?.created_at,
+            detail?.created_at ?? doc.created_at
+          );
+          return { ...doc, editedAt };
+        })
+      );
+
+      setRecentDocs(recentWithEdited);
+      setPopularDocs(popularWithEdited);
+
+      // 디버깅 로그 유지
+      console.log("최근문서(raw)", 최근문서);
+      console.log("인기문서(raw)", 인기문서);
+
+      // 예시 생성 코드 (그대로 유지)
       // const data = await createDocument({
       //   doc_created_by: "문태주",
-      //   doc_dong: "명륜3가",
-      //   doc_gu: "종로구",
+      //   doc_dong: "구로동",
+      //   doc_gu: "구로구",
       //   doc_title: "구내식당",
       //   doc_location: "혜화 어딘가 도로명 주소",
       //   intro_content: "구내식당은 제육을 파는 식당입니다",
@@ -44,7 +118,18 @@ export default function Home() {
       // });
       // console.log("fetch결과", data);
     })();
-  }, []);
+  }, [router]);
+
+  // 상세 페이지로 이동
+  const goDetail = (id: number) => {
+    router.push(`/detail/${id}`);
+  };
+
+  // ✅ 문서 작성 페이지로 이동
+  const goCreate = () => {
+    router.push("/create");
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-800">
       {/* Header */}
@@ -52,10 +137,7 @@ export default function Home() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4">
           <div className="text-xl font-bold text-gray-900">동네백과</div>
           <nav className="hidden space-x-6 md:flex">
-            <Link
-              href="#"
-              className="font-semibold text-gray-900 hover:text-blue-600"
-            >
+            <Link href="#" className="font-semibold text-gray-900 hover:text-blue-600">
               대문
             </Link>
             <Link href="#" className="text-gray-600 hover:text-blue-600">
@@ -102,8 +184,8 @@ export default function Home() {
           <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-2xl font-bold">환영합니다!</h2>
             <p className="mb-4 text-gray-700">
-              동네백과 웹사이트에 오신 것을 환영합니다. 저희는 여러분의 필요를
-              충족시키기 위해 다양한 콘텐츠와 서비스를 제공할 것입니다.
+              동네백과 웹사이트에 오신 것을 환영합니다. 저희는 여러분의 필요를 충족시키기 위해 다양한
+              콘텐츠와 서비스를 제공할 것입니다.
             </p>
             <ul className="mb-4 space-y-2 text-gray-700">
               <li className="flex items-start">
@@ -117,80 +199,47 @@ export default function Home() {
             </ul>
           </div>
 
-          {/* Recent Documents Section */}
+          {/* Recent Documents */}
           <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-2xl font-bold">최근 문서</h2>
             <ul className="space-y-3">
-              <li className="flex items-center text-blue-600 hover:underline">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                  className="mr-2 h-5 w-5"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m5.25 10.125H12M12 21.75v-3C12 16.5 10.5 15 9 15H5.25A2.25 2.25 0 0 1 3 12.75V11.25A2.25 2.25 0 0 1 5.25 9H9a2.25 2.25 0 0 1 2.25 2.25v1.5c0 1.625 1.5 3 3 3h1.5m-4.5 5.25h-4.5"
-                  />
-                </svg>
-                <Link href="#">성균 약국 - 6분 전</Link>
-              </li>
-              <li className="flex items-center text-blue-600 hover:underline">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                  className="mr-2 h-5 w-5"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m5.25 10.125H12M12 21.75v-3C12 16.5 10.5 15 9 15H5.25A2.25 2.25 0 0 1 3 12.75V11.25A2.25 2.25 0 0 1 5.25 9H9a2.25 2.25 0 0 1 2.25 2.25v1.5c0 1.625 1.5 3 3 3h1.5m-4.5 5.25h-4.5"
-                  />
-                </svg>
-                <Link href="#">혜화 병원 - 4분 전</Link>
-              </li>
-              <li className="flex items-center text-blue-600 hover:underline">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                  className="mr-2 h-5 w-5"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m5.25 10.125H12M12 21.75v-3C12 16.5 10.5 15 9 15H5.25A2.25 2.25 0 0 1 3 12.75V11.25A2.25 2.25 0 0 1 5.25 9H9a2.25 2.25 0 0 1 2.25 2.25v1.5c0 1.625 1.5 3 3 3h1.5m-4.5 5.25h-4.5"
-                  />
-                </svg>
-                <Link href="#">성대 카페 - 2시간 전</Link>
-              </li>
-              <li className="flex items-center text-blue-600 hover:underline">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                  className="mr-2 h-5 w-5"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m5.25 10.125H12M12 21.75v-3C12 16.5 10.5 15 9 15H5.25A2.25 2.25 0 0 1 3 12.75V11.25A2.25 2.25 0 0 1 5.25 9H9a2.25 2.25 0 0 1 2.25 2.25v1.5c0 1.625 1.5 3 3 3h1.5m-4.5 5.25h-4.5"
-                  />
-                </svg>
-                <Link href="#">명륜 식당 - 2시간 전</Link>
-              </li>
+              {recentDocs.length === 0 && (
+                <li className="text-gray-500">불러온 문서가 없습니다.</li>
+              )}
+              {recentDocs.map((doc) => (
+                <li key={doc.id} className="flex items-center">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                    className="mr-2 h-5 w-5 text-blue-600"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m5.25 10.125H12M12 21.75v-3C12 16.5 10.5 15 9 15H5.25A2.25 2.25 0 0 1 3 12.75V11.25A2.25 2.25 0 0 1 5.25 9H9a2.25 2.25 0 0 1 2.25 2.25v1.5c0 1.625 1.5 3 3 3h1.5m-4.5 5.25h-4.5"
+                    />
+                  </svg>
+                  {/* router.push 사용 */}
+                  <button
+                    type="button"
+                    onClick={() => goDetail(doc.id)}
+                    className="text-left text-blue-600 hover:underline"
+                  >
+                    {doc.title} - {doc.created_by}
+                    {doc.editedAt ? ` - ${timeAgo(doc.editedAt)}` : ""}
+                  </button>
+                </li>
+              ))}
             </ul>
-            <button className="mt-4 flex items-center rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700">
+
+            {/* ✅ 문서 작성하기 버튼: /create로 이동 */}
+            <button
+              onClick={goCreate}
+              className="mt-4 flex items-center rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700"
+            >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -212,16 +261,26 @@ export default function Home() {
 
         {/* Right Section */}
         <div className="space-y-8">
-          {/* Featured Documents */}
+          {/* Featured (Popular) Documents */}
           <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-2xl font-bold">주요 문서</h2>
             <ul className="space-y-3">
-              <li className="text-gray-700">
-                혜화 병원 매우 친절한 진료로 추천
-              </li>
-              <li className="text-gray-700">
-                성대 카페 이번 여름 신상 음료 후기
-              </li>
+              {popularDocs.length === 0 && (
+                <li className="text-gray-500">불러온 문서가 없습니다.</li>
+              )}
+              {popularDocs.map((doc) => (
+                <li key={doc.id} className="text-gray-700">
+                  {/* router.push 사용 */}
+                  <button
+                    type="button"
+                    onClick={() => goDetail(doc.id)}
+                    className="text-left text-gray-700 hover:underline"
+                  >
+                    {doc.title} - {doc.created_by}
+                    {doc.editedAt ? ` - ${timeAgo(doc.editedAt)}` : ""}
+                  </button>
+                </li>
+              ))}
             </ul>
           </div>
 
