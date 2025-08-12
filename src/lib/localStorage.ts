@@ -26,11 +26,11 @@ export abstract class LocalStorage {
     if (guDong == null) return false;
 
     //저장된 장소가 실제 내가 있는 위치가 아니라면
-    const realLocation: Location | null = await NaverMap.GetAddress();
+    // const realLocation: Location | null = await NaverMap.GetAddress();
 
-    if (realLocation == null || realLocation.gu != guDong.gu) {
-      return false;
-    }
+    // if (realLocation == null || realLocation.gu != guDong.gu) {
+    //   return false;
+    // }
     return true;
   }
 
