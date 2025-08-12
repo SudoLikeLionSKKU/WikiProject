@@ -38,7 +38,9 @@ function timeAgo(iso?: string | null) {
 }
 
 /* 최신 시점 고르기 */
-function pickLatestISO(...dates: Array<string | null | undefined>): string | null {
+function pickLatestISO(
+  ...dates: Array<string | null | undefined>
+): string | null {
   const ts = dates
     .filter(Boolean)
     .map((d) => new Date(d as string).getTime())
@@ -55,7 +57,9 @@ export default function Home() {
 
   // 문서 리스트 상태(수정시점 포함)
   const [recentDocs, setRecentDocs] = useState<WithEdited<ListDocument>[]>([]);
-  const [popularDocs, setPopularDocs] = useState<WithEdited<DocumentType>[]>([]);
+  const [popularDocs, setPopularDocs] = useState<WithEdited<DocumentType>[]>(
+    []
+  );
 
   useEffect(() => {
     (async (): Promise<void> => {
@@ -102,27 +106,16 @@ export default function Home() {
       // 디버깅 로그 유지
       console.log("최근문서(raw)", 최근문서);
       console.log("인기문서(raw)", 인기문서);
-
-      // 예시 생성 코드 (그대로 유지)
-      // const data = await createDocument({
-      //   doc_created_by: "문태주",
-      //   doc_dong: "구로동",
-      //   doc_gu: "구로구",
-      //   doc_title: "구내식당",
-      //   doc_location: "혜화 어딘가 도로명 주소",
-      //   intro_content: "구내식당은 제육을 파는 식당입니다",
-      //   additional_info_content: "추가정보는 이곳에",
-      //   feature_content: "특징은 이곳에",
-      //   hashtags_content: ["학식"],
-      //   doc_category: "식당",
-      // });
-      // console.log("fetch결과", data);
     })();
   }, [router]);
 
   // 상세 페이지로 이동
   const goDetail = (id: number) => {
     router.push(`/detail/${id}`);
+  };
+
+  const goCategory = (category: string) => {
+    router.push(`/list?category=${category}`);
   };
 
   // ✅ 문서 작성 페이지로 이동
@@ -136,43 +129,6 @@ export default function Home() {
       <header className="border-b border-gray-200 bg-white p-4">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4">
           <div className="text-xl font-bold text-gray-900">동네백과</div>
-          <nav className="hidden space-x-6 md:flex">
-            <Link href="#" className="font-semibold text-gray-900 hover:text-blue-600">
-              대문
-            </Link>
-            <Link href="#" className="text-gray-600 hover:text-blue-600">
-              임의 문서
-            </Link>
-            <Link href="#" className="text-gray-600 hover:text-blue-600">
-              카테고리
-            </Link>
-            <Link href="#" className="text-gray-600 hover:text-blue-600">
-              기여
-            </Link>
-          </nav>
-          <div className="flex items-center space-x-2">
-            <input
-              type="text"
-              placeholder="검색"
-              className="rounded-full border border-gray-300 px-4 py-2 text-sm focus:border-blue-500 focus:outline-none"
-            />
-            <button className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-                stroke="currentColor"
-                className="h-5 w-5"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
-                />
-              </svg>
-            </button>
-          </div>
         </div>
       </header>
 
@@ -184,8 +140,8 @@ export default function Home() {
           <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-2xl font-bold">환영합니다!</h2>
             <p className="mb-4 text-gray-700">
-              동네백과 웹사이트에 오신 것을 환영합니다. 저희는 여러분의 필요를 충족시키기 위해 다양한
-              콘텐츠와 서비스를 제공할 것입니다.
+              동네백과 웹사이트에 오신 것을 환영합니다. 저희는 여러분의 필요를
+              충족시키기 위해 다양한 콘텐츠와 서비스를 제공할 것입니다.
             </p>
             <ul className="mb-4 space-y-2 text-gray-700">
               <li className="flex items-start">
@@ -288,22 +244,18 @@ export default function Home() {
           <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-2xl font-bold">카테고리</h2>
             <ul className="space-y-3">
-              <li className="flex items-center text-gray-700">
-                <span className="mr-2 text-blue-600">▪</span>
-                의료
-              </li>
-              <li className="flex items-center text-gray-700">
-                <span className="mr-2 text-blue-600">▪</span>
-                카페
-              </li>
-              <li className="flex items-center text-gray-700">
-                <span className="mr-2 text-blue-600">▪</span>
-                맛집
-              </li>
-              <li className="flex items-center text-gray-700">
-                <span className="mr-2 text-blue-600">▪</span>
-                주거
-              </li>
+              {["의료", "카페", "맛집", "주거"].map((item) => (
+                <li key={item}>
+                  <span className="mr-2 text-blue-600">▪</span>
+                  <button
+                    type="button"
+                    onClick={() => goCategory(item)}
+                    className="text-left text-gray-700 hover:underline"
+                  >
+                    {item}
+                  </button>
+                </li>
+              ))}
             </ul>
           </div>
         </div>

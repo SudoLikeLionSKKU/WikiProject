@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState, ChangeEvent, KeyboardEvent } from "react";
 import { createDocument } from "@/lib/fetcher"; // 실제 함수 위치(fetcher) 기준
 import type { CreateDocumentDto } from "../../../types/dto";
+import { seoulGuDong } from "../../../types/seoulGuDong";
 
 /** 카테고리 옵션(임의) */
 const CATEGORY_OPTIONS = [
@@ -59,7 +60,9 @@ export default function CreateDocumentPage() {
   /** 공통 input 변경 핸들러 */
   const onChange =
     <K extends keyof CreateDocumentDto>(key: K) =>
-    (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    (
+      e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    ) => {
       setDto((prev) => ({ ...prev, [key]: e.target.value }));
     };
 
@@ -139,18 +142,72 @@ export default function CreateDocumentPage() {
               placeholder="작성자"
               className="rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none ring-blue-500 focus:ring-2"
             />
-            <input
-              value={dto.doc_gu}
-              onChange={onChange("doc_gu")}
-              placeholder="구 (예: 종로구)"
-              className="rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none ring-blue-500 focus:ring-2"
-            />
-            <input
-              value={dto.doc_dong}
-              onChange={onChange("doc_dong")}
-              placeholder="동 (예: 명륜3가)"
-              className="rounded-xl border border-gray-300 bg-white px-4 py-3 outline-none ring-blue-500 focus:ring-2"
-            />
+
+            <div className="flex items-center gap-3">
+              {/* 구 선택 */}
+              <div className="relative w-[280px]">
+                <select
+                  value={dto.doc_gu}
+                  onChange={onChange("doc_gu")}
+                  className="w-full appearance-none rounded-xl border border-gray-300 bg-white px-4 py-3 pr-10 text-gray-900 outline-none ring-blue-500 focus:ring-2"
+                  required
+                >
+                  <option value="">구</option>
+                  {Object.keys(seoulGuDong).map((gu) => (
+                    <option key={gu} value={gu}>
+                      {gu}
+                    </option>
+                  ))}
+                </select>
+                <svg
+                  className="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-500"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden
+                >
+                  <path
+                    d="M6 9l6 6 6-6"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+
+              {/* 동 선택 */}
+              <div className="relative w-[280px]">
+                <select
+                  value={dto.doc_dong}
+                  onChange={onChange("doc_dong")}
+                  className="w-full appearance-none rounded-xl border border-gray-300 bg-white px-4 py-3 pr-10 text-gray-900 outline-none ring-blue-500 focus:ring-2 disabled:bg-gray-100"
+                  required
+                  disabled={!dto.doc_gu}
+                >
+                  <option value="">동</option>
+                  {dto.doc_gu &&
+                    seoulGuDong[dto.doc_gu].map((dong) => (
+                      <option key={dong} value={dong}>
+                        {dong}
+                      </option>
+                    ))}
+                </select>
+                <svg
+                  className="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-500"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden
+                >
+                  <path
+                    d="M6 9l6 6 6-6"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+            </div>
           </div>
 
           {/* 제목 */}
@@ -193,7 +250,9 @@ export default function CreateDocumentPage() {
 
           {/* 추가 정보 */}
           <div>
-            <div className="mb-2 text-sm font-semibold text-gray-700">추가 정보</div>
+            <div className="mb-2 text-sm font-semibold text-gray-700">
+              추가 정보
+            </div>
             <textarea
               value={dto.additional_info_content}
               onChange={onChange("additional_info_content")}
