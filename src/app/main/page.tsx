@@ -102,10 +102,6 @@ export default function Home() {
 
       setRecentDocs(recentWithEdited);
       setPopularDocs(popularWithEdited);
-
-      // 디버깅 로그 유지
-      console.log("최근문서(raw)", 최근문서);
-      console.log("인기문서(raw)", 인기문서);
     })();
   }, [router]);
 
@@ -244,7 +240,7 @@ export default function Home() {
           <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-2xl font-bold">카테고리</h2>
             <ul className="space-y-3">
-              {["의료", "카페", "맛집", "주거"].map((item) => (
+              {["식당", "카페", "의료", "주거", "문화", "공원"].map((item) => (
                 <li key={item}>
                   <span className="mr-2 text-blue-600">▪</span>
                   <button
