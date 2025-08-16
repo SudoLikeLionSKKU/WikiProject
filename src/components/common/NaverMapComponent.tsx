@@ -39,17 +39,17 @@ export default function NaverMapComponent({ address }: { address: string }) {
     try {
       var mapOptions = {
         center: new naver.maps.LatLng(37.3595704, 127.105399),
-        zoom: 10,
+        zoom: 15,
       };
 
       const map = new naver.maps.Map("naver-map", mapOptions);
       mapRef.current = map;
 
-      // new naver.maps.Marker({
-      //   position: location,
-      //   map: map,
-      //   title: address,
-      // });
+      new naver.maps.Marker({
+        position: location,
+        map: map,
+        title: address,
+      });
     } catch (error) {
       console.error(error);
     }
@@ -63,7 +63,7 @@ export default function NaverMapComponent({ address }: { address: string }) {
     <>
       <Script
         strategy="beforeInteractive"
-        src={`https://oapi.map.naver.com/openapi/v3/maps.js?ncpClientId=${process.env.NEXT_PUBLIC_NAVERMAP_API_KEY_ID}`}
+        src={`https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${process.env.NEXT_PUBLIC_NAVERMAP_API_KEY_ID}`}
         onLoad={() => setScriptStatus(SCRIPT_STATUS.LOADED)}
         onError={() => setScriptStatus(SCRIPT_STATUS.ERROR)}
       />
