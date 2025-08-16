@@ -134,10 +134,10 @@ export default function Detail() {
       <header className="fixed inset-x-0 top-0 z-40 h-12 border-b border-gray-200 bg-white">
         <div className="mx-auto flex h-full max-w-7xl items-center justify-between px-4">
           <Link
-            href={`/detail/${page}`}
+            href={`/main`}
             className="text-base font-bold text-gray-900 hover:underline"
           >
-            {doc?.title ?? "..."}
+            동네백과
           </Link>
           <div className="flex items-center gap-3">
             {doc?.created_at ? (
@@ -193,7 +193,7 @@ export default function Detail() {
 
       <div className="pt-14 flex min-h-screen bg-gray-50">
         <aside className="w-64 bg-white shadow-sm border-r p-4">
-          <h2 className="text-lg font-semibold mb-3">기본 정보</h2>
+          <h2 className="text-lg font-semibold mb-3">{doc?.title}</h2>
           <div className="mb-4 flex items-center text-sm text-gray-700">
             <span className="truncate">
               {doc?.location ?? "주소 정보 없음"}
