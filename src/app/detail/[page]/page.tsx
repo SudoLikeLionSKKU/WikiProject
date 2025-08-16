@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { getDetailDocument } from "@/lib/fetcher";
 import { LocalStorage } from "@/lib/localStorage";
 import type { DetailDocument } from "../../../../types/complex";
+import { FavoriteHandler } from "@/lib/FavoriteHandler";
 
 /* -----------------------------
    페이지 컴포넌트
@@ -83,13 +84,17 @@ export default function Detail() {
   // 즐겨찾기 토글 함수 (직접 제어 함수 사용)
   const toggleFavorite = () => {
     try {
-      setIsFav(!isFav);
+      const newFav = !isFav;
+      if (doc == null) return;
 
-      if (isFav) {
-        LocalStorage.SetFavorites(doc?.id?.toString() as string);
+      if (newFav) {
+        FavoriteHandler.SetFavorites(doc as DetailDocument);
+        setDoc({ ...doc, stars: doc.stars + 1 });
       } else {
-        LocalStorage.RemoveFavorites(doc?.id?.toString() as string);
+        FavoriteHandler.RemoveFavorites(doc as DetailDocument);
+        setDoc({ ...doc, stars: doc.stars - 1 });
       }
+      setIsFav(newFav);
     } catch {
       alert("즐겨찾기 저장에 실패했어요. 잠시 후 다시 시도해 주세요.");
     }

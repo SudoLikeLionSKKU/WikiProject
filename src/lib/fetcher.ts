@@ -199,6 +199,22 @@ export async function createDocument(dto: CreateDocumentDto): Promise<number> {
   }
 }
 
+/* 해당 문서의 하트(스타) 개수 변경 */
+export async function updateDocumentStar(
+  document_id: number,
+  star: number
+): Promise<Number> {
+  const { data, error } = await supabase
+    .from("Documents")
+    .update({ stars: star })
+    .filter("id", "eq", document_id)
+    .select("id")
+    .single();
+  if (error) throw error;
+
+  return data.id;
+}
+
 /* --- 아래는 직접 테이블에 쓰는 로우레벨 함수들(필요 시 사용) --- */
 
 async function insertDocument(dto: InsertDocumentDto): Promise<number> {
