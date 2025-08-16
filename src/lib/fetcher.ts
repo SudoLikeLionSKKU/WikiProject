@@ -210,7 +210,6 @@ export async function updateDocumentStar(
     .filter("id", "eq", document_id)
     .select("id")
     .single();
-
   if (error) throw error;
 
   return data.id;
