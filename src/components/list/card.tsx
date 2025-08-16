@@ -1,9 +1,10 @@
-// src/components/list/card.tsx
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ListDocument } from "..//..//..//types/complex";
+import { FavoriteHandler } from "@/lib/FavoriteHandler";
+import { LocalStorage } from "@/lib/localStorage";
 
 type Props = {
   doc: ListDocument;
@@ -12,28 +13,59 @@ type Props = {
 };
 
 export default function Card({ doc, indexText = "", detailHref }: Props) {
-  // ✅ ListDocument에 있는 필드만 사용
-  const title = doc.title;
-  const intro = doc.introduction?.content ?? "";
+  const { id, title, introduction, Hashtags, location, stars } = doc;
 
-  // Hashtags: ListDocument에서는 각 항목이 { id, document_id, content, created_at } 형태
-  const hashtags =
-    Array.isArray(doc.Hashtags) ? doc.Hashtags.map((h) => h.content).filter(Boolean) : [];
+  // 1) 파생 데이터(메모이제이션)
+  const idStr = useMemo(() => (id != null ? String(id) : ""), [id]);
+  const intro = introduction?.content ?? "";
+  const hashtags = (Hashtags?.map(h => h.content).filter(Boolean)) ?? [];
 
-  // 좋아요: 타입에 없으므로 로컬 상태만 사용(초기값 0/false)
+  // 2) 상태
   const [liked, setLiked] = useState(false);
-  const [count, setCount] = useState(0);
-  const toggleLike = () => {
-    const nextLiked = !liked;
-    setLiked(nextLiked);
-    setCount((c) => Math.max(0, c + (nextLiked ? 1 : -1)));
+  const [count, setCount] = useState<number>(stars ?? 0);
+
+  // 3) 초기/재동기화: doc 변경 시 즐겨찾기/별점 동기화
+  useEffect(() => {
+    // 별점은 props 변경을 신뢰해 동기화
+    setCount(stars ?? 0);
+
+    // 즐겨찾기 여부는 LocalStorage에서 안전 조회
+    if (!idStr) return;
+    try {
+      const favs = LocalStorage.GetFavorites();
+      setLiked(favs.includes(idStr));
+    } catch {
+      setLiked(false);
+    }
+  }, [idStr, stars]);
+
+  // 4) 즐겨찾기 토글 (낙관적 업데이트 + 실패 시 롤백)
+  const toggleLike = async () => {
+    if (!idStr) return;
+
+    const next = !liked;
+    setLiked(next);
+    setCount(prev => Math.max(0, prev + (next ? 1 : -1)));
+
+    try {
+      if (next) {
+        await FavoriteHandler.SetFavorites(doc);
+      } else {
+        await FavoriteHandler.RemoveFavorites(doc);
+      }
+    } catch (err) {
+      console.error("Failed to update favorite:", err);
+      // 롤백
+      setLiked(!next);
+      setCount(prev => Math.max(0, prev + (next ? -1 : 1)));
+    }
   };
 
   return (
     <article className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-md">
       <div className="mb-2 flex items-center justify-between">
         <div className="text-sm text-gray-500">{indexText}</div>
-        <div className="text-xs text-gray-400">혜화동 450m</div>
+        <div className="text-xs text-gray-400">{location || ""}</div>
       </div>
 
       <h3 className="mb-2 text-lg font-semibold leading-tight">{title}</h3>
@@ -42,32 +74,23 @@ export default function Card({ doc, indexText = "", detailHref }: Props) {
         {intro || "소개 문구가 아직 등록되지 않았습니다."}
       </p>
 
-      {/* 해시태그: 클릭 가능(동작 없음) */}
       <div className="mb-4 flex flex-wrap gap-2">
         {hashtags.length > 0 ? (
           hashtags.map((t, i) => (
             <button
               key={`${t}-${i}`}
               type="button"
-              className="rounded-full border border-gray-200 px-2.5 py-1 text-xs text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="rounded-full border border-gray-200 px-2.5 py-1 text-xs text-gray-700 hover:bg-gray-50"
             >
               #{t}
             </button>
           ))
         ) : (
-          <button
-            type="button"
-            disabled
-            aria-disabled="true"
-            className="rounded-full border border-gray-200 px-2.5 py-1 text-xs text-gray-400 cursor-not-allowed"
-          >
-            #해시태그없음
-          </button>
+          <div className="py-1 text-xs text-gray-400">#해시태그없음</div>
         )}
       </div>
 
       <div className="flex items-center justify-between">
-        {/* ♥ 토글 (로컬 UI만) */}
         <button
           type="button"
           aria-pressed={liked}
@@ -98,7 +121,7 @@ export default function Card({ doc, indexText = "", detailHref }: Props) {
 function Heart({ filled }: { filled: boolean }) {
   return (
     <svg
-      className={`h-5 w-5 ${filled ? "text-red-600" : "text-gray-900"}`}
+      className={`h-5 w-5 transition-colors ${filled ? "text-red-600" : "text-gray-400 hover:text-gray-600"}`}
       viewBox="0 0 24 24"
       fill={filled ? "currentColor" : "none"}
       stroke="currentColor"
