@@ -15,6 +15,7 @@ import { FavoriteHandler } from "@/lib/FavoriteHandler";
 import EditButton from "@/components/common/EditButton";
 import { ReviewType } from "../../../../types/basic";
 import { InsertReviewDto } from "../../../../types/dto";
+import NaverMapComponent from "@/components/common/NaverMapComponent";
 
 /* -----------------------------
    페이지 컴포넌트
@@ -199,6 +200,7 @@ export default function Detail() {
               {doc?.location ?? "주소 정보 없음"}
             </span>
           </div>
+          <NaverMapComponent address={doc?.location ?? ""} />
           <div className="mb-6 flex flex-wrap gap-2">
             {(doc?.Hashtags?.length ? doc.Hashtags : []).map((tag) => (
               <button
