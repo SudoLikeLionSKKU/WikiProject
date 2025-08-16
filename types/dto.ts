@@ -15,6 +15,8 @@ export type InsertHashtagDto =
 export type CreateDocumentRpcArgs =
   Database["public"]["Functions"]["create_document_full_transaction"]["Args"];
 
+export type InsertReviewDto = Database["public"]["Tables"]["Reviews"]["Insert"];
+
 export type CreateDocumentDto = CreateDocumentRpcArgs & {
   doc_category: string;
 };

@@ -4,13 +4,14 @@ import {
   DetailSection,
   DetailDocument,
 } from "../../types/complex";
-import { DocumentType, Location } from "../../types/basic";
+import { DocumentType, Location, ReviewType } from "../../types/basic";
 import {
   InsertDocumentDto,
   InsertSectionDto,
   InsertSectionRevisionDto,
   InsertHashtagDto,
   CreateDocumentDto,
+  InsertReviewDto,
 } from "../../types/dto";
 import { LocalStorage } from "./localStorage";
 
@@ -128,6 +129,7 @@ export async function getDetailDocument(
     `
     )
     .eq("id", document_id)
+    .order("created_at", { ascending: false, foreignTable: "Reviews" })
     .single();
 
   if (error) {
@@ -215,7 +217,33 @@ export async function updateDocumentStar(
   return data.id;
 }
 
+/* 한 문서에 대한 Reviews가져오기 */
+export async function GetReviewsByDocumentId(
+  document_id: number
+): Promise<ReviewType[] | null> {
+  const { data, error } = await supabase
+    .from("Reviews")
+    .select("id, created_at, created_by, content, document_id")
+    .filter("document_id", "eq", document_id)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return data;
+}
+
 /* --- 아래는 직접 테이블에 쓰는 로우레벨 함수들(필요 시 사용) --- */
+
+export async function insertReview(dto: InsertReviewDto): Promise<number> {
+  const { data, error } = await supabase
+    .from("Reviews")
+    .insert(dto)
+    .select("id")
+    .single();
+
+  if (error) throw error;
+
+  return data.id;
+}
 
 async function insertDocument(dto: InsertDocumentDto): Promise<number> {
   const { data, error } = await supabase
