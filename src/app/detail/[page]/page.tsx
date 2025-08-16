@@ -213,10 +213,15 @@ export default function Detail() {
                 1. 소개
               </h2>
               {doc?.introduction?.content ? (
-                <p className="whitespace-pre-wrap">
-                  {doc.introduction.content} ({doc.introduction.created_by} /{" "}
-                  {timeAgo(doc.introduction.created_at)})
-                </p>
+                <div>
+                  <p className="whitespace-pre-wrap">
+                    {doc.introduction.content}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {doc.introduction.created_by} /{" "}
+                    {timeAgo(doc.introduction.created_at)}
+                  </p>
+                </div>
               ) : (
                 <Placeholder text="소개 내용이 없습니다." />
               )}
@@ -230,7 +235,12 @@ export default function Detail() {
                 2. 특징
               </h2>
               {doc?.feature ? (
-                <p className="whitespace-pre-wrap">{doc.feature.content}</p>
+                <div>
+                  <p className="whitespace-pre-wrap">{doc.feature.content}</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {doc.feature.created_by} / {timeAgo(doc.feature.created_at)}
+                  </p>
+                </div>
               ) : (
                 <Placeholder text="특징 정보가 없습니다." />
               )}
@@ -289,9 +299,15 @@ export default function Detail() {
                 4. 추가 정보
               </h2>
               {doc?.additionalInfo?.content ? (
-                <p className="whitespace-pre-wrap">
-                  {doc.additionalInfo.content}
-                </p>
+                <div>
+                  <p className="whitespace-pre-wrap">
+                    {doc.additionalInfo.content}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {doc.additionalInfo.created_by} /{" "}
+                    {timeAgo(doc.additionalInfo.created_at)}
+                  </p>
+                </div>
               ) : (
                 <Placeholder text="추가 정보가 없습니다." />
               )}
