@@ -4,10 +4,17 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { getDetailDocument } from "@/lib/fetcher";
+import {
+  getDetailDocument,
+  GetReviewsByDocumentId,
+  insertReview,
+} from "@/lib/fetcher";
 import { LocalStorage } from "@/lib/localStorage";
 import type { DetailDocument } from "../../../../types/complex";
 import { FavoriteHandler } from "@/lib/FavoriteHandler";
+import EditButton from "@/components/common/EditButton";
+import { ReviewType } from "../../../../types/basic";
+import { InsertReviewDto } from "../../../../types/dto";
 
 /* -----------------------------
    페이지 컴포넌트
@@ -50,6 +57,11 @@ export default function Detail() {
   const [err, setErr] = useState<string | null>(null);
   const [isFav, setIsFav] = useState(false);
   const [isReviewsExpanded, setIsReviewsExpanded] = useState(false);
+  const [review, setReview] = useState<InsertReviewDto>({
+    content: "",
+    created_by: "",
+    document_id: Number(page),
+  });
 
   // 데이터 로드
   useEffect(() => {
@@ -100,15 +112,32 @@ export default function Detail() {
     }
   };
 
+  const handlerReviewSubmit = async (e: any) => {
+    e.preventDefault();
+    //1. 리뷰를 물리적으로 DB에 저장한다.
+
+    const id: number = await insertReview(review);
+    console.log(id);
+    if (!id) return;
+    //2. 리뷰 저장이 성공할 경우 현재 화면에 반영한다.
+    const datas = await GetReviewsByDocumentId(Number(page));
+    console.log(datas);
+    if (doc && datas) {
+      setDoc({ ...doc, reviews: datas });
+    }
+    //3. 리뷰 등록창을 초기화한다.
+    setReview({ content: "", created_by: "", document_id: Number(page) });
+  };
+
   return (
     <>
       <header className="fixed inset-x-0 top-0 z-40 h-12 border-b border-gray-200 bg-white">
         <div className="mx-auto flex h-full max-w-7xl items-center justify-between px-4">
           <Link
-            href={`/detail/${page}`}
+            href={`/main`}
             className="text-base font-bold text-gray-900 hover:underline"
           >
-            {doc?.title ?? "..."}
+            동네백과
           </Link>
           <div className="flex items-center gap-3">
             {doc?.created_at ? (
@@ -117,6 +146,10 @@ export default function Detail() {
                 {timeAgo(doc?.created_at)}
               </span>
             ) : null}
+            <Link href={`/edit/${page}`}>
+              <EditButton size="sm" />
+            </Link>
+
             <button
               type="button"
               onClick={toggleFavorite}
@@ -160,7 +193,7 @@ export default function Detail() {
 
       <div className="pt-14 flex min-h-screen bg-gray-50">
         <aside className="w-64 bg-white shadow-sm border-r p-4">
-          <h2 className="text-lg font-semibold mb-3">기본 정보</h2>
+          <h2 className="text-lg font-semibold mb-3">{doc?.title}</h2>
           <div className="mb-4 flex items-center text-sm text-gray-700">
             <span className="truncate">
               {doc?.location ?? "주소 정보 없음"}
@@ -213,10 +246,15 @@ export default function Detail() {
                 1. 소개
               </h2>
               {doc?.introduction?.content ? (
-                <p className="whitespace-pre-wrap">
-                  {doc.introduction.content} ({doc.introduction.created_by} /{" "}
-                  {timeAgo(doc.introduction.created_at)})
-                </p>
+                <div>
+                  <p className="whitespace-pre-wrap">
+                    {doc.introduction.content}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {doc.introduction.created_by} /{" "}
+                    {timeAgo(doc.introduction.created_at)}
+                  </p>
+                </div>
               ) : (
                 <Placeholder text="소개 내용이 없습니다." />
               )}
@@ -230,7 +268,12 @@ export default function Detail() {
                 2. 특징
               </h2>
               {doc?.feature ? (
-                <p className="whitespace-pre-wrap">{doc.feature.content}</p>
+                <div>
+                  <p className="whitespace-pre-wrap">{doc.feature.content}</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {doc.feature.created_by} / {timeAgo(doc.feature.created_at)}
+                  </p>
+                </div>
               ) : (
                 <Placeholder text="특징 정보가 없습니다." />
               )}
@@ -243,6 +286,40 @@ export default function Detail() {
               <h2 className="font-bold text-xl border-b border-gray-200 pb-1 mb-2">
                 3. 방문객 의견
               </h2>
+              {/* 리뷰 작성 박스 */}
+              <div className="not-prose mb-4 bg-white p-4 rounded-md border border-gray-200">
+                <form onSubmit={handlerReviewSubmit} className="space-y-3">
+                  <input
+                    type="text"
+                    placeholder="작성자 이름"
+                    value={review.created_by ?? ""}
+                    onChange={(e) =>
+                      setReview({ ...review, created_by: e.target.value })
+                    }
+                    required
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <textarea
+                    placeholder="리뷰 내용을 입력해주세요..."
+                    value={review.content ?? ""}
+                    required
+                    onChange={(e) =>
+                      setReview({ ...review, content: e.target.value })
+                    }
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    rows={3}
+                  />
+                  <div className="flex justify-end">
+                    <button
+                      type="submit"
+                      className="px-4 py-2 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 transition"
+                    >
+                      등록
+                    </button>
+                  </div>
+                </form>
+              </div>
+
               <div className="not-prose space-y-4 bg-gray-50 p-4 rounded-md border border-gray-200 mt-4">
                 {doc?.reviews?.length ? (
                   doc.reviews
@@ -289,9 +366,15 @@ export default function Detail() {
                 4. 추가 정보
               </h2>
               {doc?.additionalInfo?.content ? (
-                <p className="whitespace-pre-wrap">
-                  {doc.additionalInfo.content}
-                </p>
+                <div>
+                  <p className="whitespace-pre-wrap">
+                    {doc.additionalInfo.content}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {doc.additionalInfo.created_by} /{" "}
+                    {timeAgo(doc.additionalInfo.created_at)}
+                  </p>
+                </div>
               ) : (
                 <Placeholder text="추가 정보가 없습니다." />
               )}

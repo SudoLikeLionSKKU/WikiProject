@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "동네위키",
+  title: "동네백과",
   description: "우리 동네의 상가 정보를 한눈에 확인하세요",
 };
 
