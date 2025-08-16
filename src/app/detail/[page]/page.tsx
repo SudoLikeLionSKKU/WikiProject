@@ -8,6 +8,7 @@ import { getDetailDocument } from "@/lib/fetcher";
 import { LocalStorage } from "@/lib/localStorage";
 import type { DetailDocument } from "../../../../types/complex";
 import { FavoriteHandler } from "@/lib/FavoriteHandler";
+import EditButton from "@/components/common/EditButton";
 
 /* -----------------------------
    페이지 컴포넌트
@@ -117,6 +118,10 @@ export default function Detail() {
                 {timeAgo(doc?.created_at)}
               </span>
             ) : null}
+            <Link href={`/edit/${page}`}>
+              <EditButton size="sm" />
+            </Link>
+
             <button
               type="button"
               onClick={toggleFavorite}
