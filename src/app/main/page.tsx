@@ -70,7 +70,8 @@ export default function Home() {
       }
 
       // 원래대로 가져오기
-      const 최근문서 = (await getListDocuments(4)) || [];
+      const 최근문서 = (await getListDocuments(4, "식당")) || [];
+      console.log(최근문서);
       const 인기문서 = (await getPopularDocuments(2)) || [];
 
       // 각 항목의 최신 수정시점 계산 (detail 조회로 최신 섹션 리비전 포함)

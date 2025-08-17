@@ -18,7 +18,7 @@ export default function Card({ doc, indexText = "", detailHref }: Props) {
   // 1) 파생 데이터(메모이제이션)
   const idStr = useMemo(() => (id != null ? String(id) : ""), [id]);
   const intro = introduction?.content ?? "";
-  const hashtags = (Hashtags?.map(h => h.content).filter(Boolean)) ?? [];
+  const hashtags = Hashtags?.map((h) => h.content).filter(Boolean) ?? [];
 
   // 2) 상태
   const [liked, setLiked] = useState(false);
@@ -45,19 +45,22 @@ export default function Card({ doc, indexText = "", detailHref }: Props) {
 
     const next = !liked;
     setLiked(next);
-    setCount(prev => Math.max(0, prev + (next ? 1 : -1)));
 
     try {
       if (next) {
         await FavoriteHandler.SetFavorites(doc);
+        doc.stars += 1;
       } else {
         await FavoriteHandler.RemoveFavorites(doc);
+        doc.stars -= 1;
       }
+
+      setCount((prev) => Math.max(0, prev + (next ? 1 : -1)));
     } catch (err) {
       console.error("Failed to update favorite:", err);
       // 롤백
       setLiked(!next);
-      setCount(prev => Math.max(0, prev + (next ? -1 : 1)));
+      setCount((prev) => Math.max(0, prev + (next ? -1 : 1)));
     }
   };
 
@@ -98,7 +101,9 @@ export default function Card({ doc, indexText = "", detailHref }: Props) {
           className="flex items-center gap-1 text-sm"
         >
           <Heart filled={liked} />
-          <span className={liked ? "text-red-600" : "text-gray-900"}>{count}</span>
+          <span className={liked ? "text-red-600" : "text-gray-900"}>
+            {count}
+          </span>
         </button>
 
         {detailHref ? (
@@ -121,7 +126,9 @@ export default function Card({ doc, indexText = "", detailHref }: Props) {
 function Heart({ filled }: { filled: boolean }) {
   return (
     <svg
-      className={`h-5 w-5 transition-colors ${filled ? "text-red-600" : "text-gray-400 hover:text-gray-600"}`}
+      className={`h-5 w-5 transition-colors ${
+        filled ? "text-red-600" : "text-gray-400 hover:text-gray-600"
+      }`}
       viewBox="0 0 24 24"
       fill={filled ? "currentColor" : "none"}
       stroke="currentColor"
