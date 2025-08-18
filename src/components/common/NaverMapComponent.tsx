@@ -54,7 +54,7 @@ export default function NaverMapComponent({
       mapRef.current = map;
 
       new naver.maps.Marker({
-        position: location,
+        position: gecode,
         map: map,
         title: address,
       });
@@ -75,7 +75,7 @@ export default function NaverMapComponent({
         onLoad={() => setScriptStatus(SCRIPT_STATUS.LOADED)}
         onError={() => setScriptStatus(SCRIPT_STATUS.ERROR)}
       />
-      <div id="naver-map" className="w-full h-[300px] w-[300px]"></div>
+      <div id="naver-map" className="w-full h-[200px] w-[200px]"></div>
     </>
   );
 }
