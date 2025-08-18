@@ -11,25 +11,31 @@ const SCRIPT_STATUS = {
   ERROR: "error",
 };
 
-export default function NaverMapComponent({ address }: { address: string }) {
+export default function NaverMapComponent({
+  address,
+  width,
+  height,
+}: {
+  address: string;
+  width: number;
+  height: number;
+}) {
   const mapRef = useRef<naver.maps.Map | null>(null);
   const [scriptStatus, setScriptStatus] = useState(SCRIPT_STATUS.LOADING);
 
   // 직접 API를 호출하는 대신, API 라우트를 호출
   const fetchGeocode = async (addr: string): Promise<naver.maps.LatLng> => {
-    const response = await fetch(
-      `/api/geocode?query=${encodeURIComponent(addr)}`
-    );
+    const response = await fetch(`/api/geocode?query=${addr}`);
     if (!response.ok) {
       throw new Error("Geocoding API route call failed");
     }
     const data = await response.json();
 
-    if (data.v2.addresses.length === 0) {
+    if (data.addresses.length === 0) {
       throw new Error("주소를 찾을 수 없습니다.");
     }
 
-    const { x, y } = data.v2.addresses[0];
+    const { x, y } = data.addresses[0];
     return new naver.maps.LatLng(Number(y), Number(x));
   };
 
@@ -37,9 +43,11 @@ export default function NaverMapComponent({ address }: { address: string }) {
     if (!window.naver) return;
 
     try {
+      if (!address) return;
+      const gecode: naver.maps.LatLng = await fetchGeocode(address);
       var mapOptions = {
-        center: new naver.maps.LatLng(37.3595704, 127.105399),
-        zoom: 15,
+        center: gecode,
+        zoom: 18,
       };
 
       const map = new naver.maps.Map("naver-map", mapOptions);
@@ -67,7 +75,7 @@ export default function NaverMapComponent({ address }: { address: string }) {
         onLoad={() => setScriptStatus(SCRIPT_STATUS.LOADED)}
         onError={() => setScriptStatus(SCRIPT_STATUS.ERROR)}
       />
-      <div id="naver-map" className="w-full h-[500px]"></div>
+      <div id="naver-map" className="w-full h-[300px] w-[300px]"></div>
     </>
   );
 }
