@@ -122,7 +122,6 @@ export default function Detail() {
     if (!id) return;
     //2. 리뷰 저장이 성공할 경우 현재 화면에 반영한다.
     const datas = await GetReviewsByDocumentId(Number(page));
-    console.log(datas);
     if (doc && datas) {
       setDoc({ ...doc, reviews: datas });
     }
@@ -200,8 +199,12 @@ export default function Detail() {
               {doc?.location ?? "주소 정보 없음"}
             </span>
           </div>
-          <NaverMapComponent address={doc?.location ?? ""} />
-          <div className="mb-6 flex flex-wrap gap-2">
+          <NaverMapComponent
+            address={doc?.location ?? ""}
+            width={200}
+            height={300}
+          />
+          <div className="mb-6 mt-5 flex flex-wrap gap-2">
             {(doc?.Hashtags?.length ? doc.Hashtags : []).map((tag) => (
               <button
                 key={tag.id}
