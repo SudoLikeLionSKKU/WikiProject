@@ -283,7 +283,7 @@ async function UpdateSectionCurrentReivisonId(
   if (error) throw error;
 }
 
-async function InsertSectionRevision(
+export async function InsertSectionRevision(
   dto: InsertSectionRevisionDto
 ): Promise<number> {
   const { data, error } = await supabase
