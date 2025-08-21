@@ -4,16 +4,12 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import {
-  getDetailDocument,
-  GetReviewsByDocumentId,
-  insertReview,
-} from "@/lib/fetcher";
+import { getDetailDocument, InsertSectionRevision } from "@/lib/fetcher";
 import { LocalStorage } from "@/lib/localStorage";
 import type { DetailDocument } from "../../../../types/complex";
 import { FavoriteHandler } from "@/lib/FavoriteHandler";
-import { InsertReviewDto } from "../../../../types/dto";
 import NaverMapComponent from "@/components/common/NaverMapComponent";
+import { InsertSectionRevisionDto } from "../../../../types/dto";
 
 /* -----------------------------
    유틸
@@ -62,14 +58,6 @@ export default function Edit() {
   // 즐겨찾기
   const [isFav, setIsFav] = useState(false);
 
-  // 리뷰 영역 (Detail과 동일)
-  const [isReviewsExpanded, setIsReviewsExpanded] = useState(false);
-  const [review, setReview] = useState<InsertReviewDto>({
-    content: "",
-    created_by: "",
-    document_id: Number(page),
-  });
-
   // 편집 상태(1,2,4)
   const [editing, setEditing] = useState<{
     intro: boolean;
@@ -78,10 +66,25 @@ export default function Edit() {
   }>({ intro: false, feature: false, more: false });
 
   // 입력 값
-  const [inputs, setInputs] = useState({
-    intro: "",
-    feature: "",
-    more: "",
+  const [feature, SetFeature] = useState<InsertSectionRevisionDto>({
+    content: "",
+    created_by: "",
+    section_id: doc?.feature?.id as number,
+    document_id: Number(page),
+  });
+
+  const [more, SetMore] = useState<InsertSectionRevisionDto>({
+    content: "",
+    created_by: "",
+    section_id: doc?.additionalInfo?.id as number,
+    document_id: Number(page),
+  });
+
+  const [intro, SetIntro] = useState<InsertSectionRevisionDto>({
+    content: "",
+    created_by: "",
+    section_id: doc?.introduction?.id as number,
+    document_id: Number(page),
   });
 
   // 데이터 로드 (Detail과 동일)
@@ -96,10 +99,20 @@ export default function Edit() {
         )) as DetailDocument | null;
         if (ignore) return;
         setDoc(data);
-        setInputs({
-          intro: data?.introduction?.content ?? "",
-          feature: data?.feature?.content ?? "",
-          more: data?.additionalInfo?.content ?? "",
+        SetFeature({
+          ...feature,
+          content: data?.feature?.content,
+          section_id: data?.feature?.section_id as number,
+        });
+        SetMore({
+          ...more,
+          content: data?.additionalInfo?.content,
+          section_id: data?.additionalInfo?.section_id as number,
+        });
+        SetIntro({
+          ...intro,
+          content: data?.introduction?.content,
+          section_id: data?.introduction?.section_id as number,
         });
       } catch {
         if (!ignore) setErr("문서를 불러오는 중 오류가 발생했습니다.");
@@ -134,21 +147,11 @@ export default function Edit() {
       }
       setIsFav(newFav);
     } catch {
-      alert("즐겨찾기 저장에 실패했어요. 잠시 후 다시 시도해 주세요.");
+      alert("즐겨찾기 승인요청에 실패했어요. 잠시 후 다시 시도해 주세요.");
     }
   };
 
-  // 리뷰 등록 (Detail과 동일)
-  const handlerReviewSubmit = async (e: any) => {
-    e.preventDefault();
-    const id: number = await insertReview(review);
-    if (!id) return;
-    const datas = await GetReviewsByDocumentId(Number(page));
-    if (doc && datas) setDoc({ ...doc, reviews: datas });
-    setReview({ content: "", created_by: "", document_id: Number(page) });
-  };
-
-  // 편집 토글 / 취소 / 저장 (저장은 지금은 로컬만)
+  // 편집 토글 / 취소 / 승인요청 (승인요청은 지금은 로컬만)
   const toggleEdit = (key: keyof typeof editing) =>
     setEditing((prev) => ({ ...prev, [key]: true }));
 
@@ -156,21 +159,41 @@ export default function Edit() {
     setEditing((prev) => ({ ...prev, [key]: false }));
     if (!doc) return;
     if (key === "intro") {
-      setInputs((p) => ({ ...p, intro: doc.introduction?.content ?? "" }));
+      SetIntro({
+        ...intro,
+        content: doc.introduction?.content ?? "",
+        created_by: "",
+      });
     } else if (key === "feature") {
-      setInputs((p) => ({ ...p, feature: doc.feature?.content ?? "" }));
+      SetFeature({ ...feature, content: doc.feature?.content, created_by: "" });
     } else {
-      setInputs((p) => ({ ...p, more: doc.additionalInfo?.content ?? "" }));
+      SetMore({
+        ...more,
+        content: doc.additionalInfo?.content,
+        created_by: "",
+      });
     }
   };
 
-  const saveEdit = (key: keyof typeof editing) => {
-    // 서버 저장은 아직 필요 없음. 로컬 값만 유지하고 비활성화
+  const saveEdit = async (key: keyof typeof editing) => {
+    // 서버 승인요청은 아직 필요 없음. 로컬 값만 유지하고 비활성화
     setEditing((prev) => ({ ...prev, [key]: false }));
+    switch (key) {
+      case "feature":
+        console.log(feature);
+        await InsertSectionRevision(feature);
+        break;
+      case "intro":
+        console.log(intro);
+        await InsertSectionRevision(intro);
+        break;
+      case "more":
+        console.log(more);
+        await InsertSectionRevision(more);
+        break;
+    }
+    alert("관리자의 승인 이후 요청한 내용이 등록됩니다.");
   };
-
-  const handleChange = (key: keyof typeof inputs, v: string) =>
-    setInputs((prev) => ({ ...prev, [key]: v }));
 
   if (loading) return null;
   if (err) return <div className="p-6 text-red-600">{err}</div>;
@@ -252,7 +275,9 @@ export default function Edit() {
         <aside className="w-64 bg-white shadow-sm border-r p-4">
           <h2 className="text-lg font-semibold mb-3">{doc?.title}</h2>
           <div className="mb-4 flex items-center text-sm text-gray-700">
-            <span className="truncate">{doc?.location ?? "주소 정보 없음"}</span>
+            <span className="truncate">
+              {doc?.location ?? "주소 정보 없음"}
+            </span>
           </div>
           <NaverMapComponent
             address={doc?.location ?? ""}
@@ -300,16 +325,32 @@ export default function Edit() {
         <main className="flex-1 p-6 md:p-8">
           <div className="bg-white border border-gray-200 rounded-md shadow-sm p-6 md:p-8">
             {/* 1. 소개 */}
-            <section id="intro" className="prose prose-sm max-w-none scroll-mt-16">
+            <section
+              id="intro"
+              className="prose prose-sm max-w-none scroll-mt-16"
+            >
               <h2 className="font-bold text-xl border-b border-gray-200 pb-1 mb-2">
                 1. 소개
               </h2>
 
-              <textarea
-                value={inputs.intro}
-                onChange={(e) => handleChange("intro", e.target.value)}
+              <input
+                type="text"
+                value={intro.created_by ?? ""}
+                placeholder="작성자"
+                onChange={(e) =>
+                  SetIntro({ ...intro, created_by: e.target.value })
+                }
                 disabled={!editing.intro}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white resize-none"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+
+              <textarea
+                value={intro.content ?? ""}
+                onChange={(e) =>
+                  SetIntro({ ...intro, content: e.target.value })
+                }
+                disabled={!editing.intro}
+                className="w-full mt-2 border border-gray-300 rounded-md px-3 py-2 bg-white resize-none"
                 rows={4}
               />
 
@@ -338,7 +379,7 @@ export default function Edit() {
                     onClick={() => saveEdit("intro")}
                     className="px-3 py-1.5 text-sm rounded-md bg-blue-600 text-white disabled:opacity-50"
                   >
-                    저장
+                    승인요청
                   </button>
                 </div>
               </div>
@@ -354,12 +395,23 @@ export default function Edit() {
               <h2 className="font-bold text-xl border-b border-gray-200 pb-1 mb-2">
                 2. 특징
               </h2>
-
-              <textarea
-                value={inputs.feature}
-                onChange={(e) => handleChange("feature", e.target.value)}
+              <input
+                type="text"
+                value={feature.created_by ?? ""}
+                placeholder="작성자"
+                onChange={(e) =>
+                  SetFeature({ ...feature, created_by: e.target.value })
+                }
                 disabled={!editing.feature}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white resize-none"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+              <textarea
+                value={feature.content ?? ""}
+                onChange={(e) =>
+                  SetFeature({ ...feature, content: e.target.value })
+                }
+                disabled={!editing.feature}
+                className="w-full mt-2 border border-gray-300 rounded-md px-3 py-2 bg-white resize-none"
                 rows={4}
               />
 
@@ -388,7 +440,7 @@ export default function Edit() {
                     onClick={() => saveEdit("feature")}
                     className="px-3 py-1.5 text-sm rounded-md bg-blue-600 text-white disabled:opacity-50"
                   >
-                    저장
+                    승인요청
                   </button>
                 </div>
               </div>
@@ -396,98 +448,31 @@ export default function Edit() {
 
             <hr className="my-8 border-t-0" />
 
-            {/* 3. 방문객 의견 (Detail 동일) */}
+            {/* 4. 추가 정보 */}
             <section
-              id="reviews"
+              id="more"
               className="prose prose-sm max-w-none scroll-mt-16"
             >
               <h2 className="font-bold text-xl border-b border-gray-200 pb-1 mb-2">
-                3. 방문객 의견
+                3. 추가 정보
               </h2>
 
-              <div className="not-prose mb-4 bg-white p-4 rounded-md border border-gray-200">
-                <form onSubmit={handlerReviewSubmit} className="space-y-3">
-                  <input
-                    type="text"
-                    placeholder="작성자 이름"
-                    value={review.created_by ?? ""}
-                    onChange={(e) =>
-                      setReview({ ...review, created_by: e.target.value })
-                    }
-                    required
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <textarea
-                    placeholder="리뷰 내용을 입력해주세요..."
-                    value={review.content ?? ""}
-                    required
-                    onChange={(e) =>
-                      setReview({ ...review, content: e.target.value })
-                    }
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    rows={3}
-                  />
-                  <div className="flex justify-end">
-                    <button
-                      type="submit"
-                      className="px-4 py-2 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 transition"
-                    >
-                      등록
-                    </button>
-                  </div>
-                </form>
-              </div>
-
-              <div className="not-prose space-y-4 bg-gray-50 p-4 rounded-md border border-gray-200 mt-4">
-                {doc?.reviews?.length ? (
-                  doc.reviews
-                    .slice(0, isReviewsExpanded ? doc.reviews.length : 3)
-                    .map((r, i) => (
-                      <div
-                        key={i}
-                        className="border-b border-gray-200 pb-3 last:border-b-0"
-                      >
-                        <div className="flex items-center gap-2 text-xs text-gray-600 mb-1.5">
-                          <span className="font-semibold text-gray-800">
-                            {r.created_by ?? "익명"}
-                          </span>
-                          <span className="text-gray-400">·</span>
-                          <span>
-                            {r.created_at ? timeAgo(r.created_at) : "방금 전"}
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-800">{r.content}</p>
-                      </div>
-                    ))
-                ) : (
-                  <Placeholder text="리뷰가 없습니다." />
-                )}
-                {doc?.reviews && doc.reviews.length > 3 && (
-                  <div className="pt-2">
-                    <button
-                      onClick={() => setIsReviewsExpanded(!isReviewsExpanded)}
-                      className="w-full flex items-center justify-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900 py-2 rounded-md bg-white border border-gray-300 hover:bg-gray-100 transition"
-                    >
-                      {isReviewsExpanded ? "접기 ▲" : "더보기 ▼"}
-                    </button>
-                  </div>
-                )}
-              </div>
-            </section>
-
-            <hr className="my-8 border-t-0" />
-
-            {/* 4. 추가 정보 */}
-            <section id="more" className="prose prose-sm max-w-none scroll-mt-16">
-              <h2 className="font-bold text-xl border-b border-gray-200 pb-1 mb-2">
-                4. 추가 정보
-              </h2>
+              <input
+                type="text"
+                value={more.created_by ?? ""}
+                placeholder="작성자"
+                onChange={(e) =>
+                  SetMore({ ...more, created_by: e.target.value })
+                }
+                disabled={!editing.more}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
 
               <textarea
-                value={inputs.more}
-                onChange={(e) => handleChange("more", e.target.value)}
+                value={more.content ?? ""}
+                onChange={(e) => SetMore({ ...more, content: e.target.value })}
                 disabled={!editing.more}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white resize-none"
+                className="w-full mt-2 border border-gray-300 rounded-md px-3 py-2 bg-white resize-none"
                 rows={4}
               />
 
@@ -516,7 +501,7 @@ export default function Edit() {
                     onClick={() => saveEdit("more")}
                     className="px-3 py-1.5 text-sm rounded-md bg-blue-600 text-white disabled:opacity-50"
                   >
-                    저장
+                    승인요청
                   </button>
                 </div>
               </div>
