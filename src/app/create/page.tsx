@@ -1,40 +1,31 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState, ChangeEvent, KeyboardEvent } from "react";
-import { createDocument } from "@/lib/fetcher"; // 실제 함수 위치(fetcher) 기준
+import { useEffect, useMemo, useRef, useState, ChangeEvent, KeyboardEvent } from "react";
+import { createDocument } from "@/lib/fetcher";
 import type { CreateDocumentDto } from "../../../types/dto";
 import { seoulGuDong } from "../../../types/seoulGuDong";
 
-/** 카테고리 옵션(임의) */
-const CATEGORY_OPTIONS = [
-  { id: "식당", label: "식당" },
-  { id: "카페", label: "카페" },
-  { id: "의료", label: "의료" },
-  { id: "주거", label: "주거" },
-  { id: "문화", label: "문화" },
-  { id: "공원", label: "공원" },
-];
-
-/** 추천 해시태그(임의) */
-const RECOMMENDED_TAGS = [
-  "조용한카페",
-  "운동시설좋음",
-  "디카페인",
-  "피트니스",
-  "스터디카페",
-];
+/** 간단한 디바운스 헬퍼 */
+function useDebouncedCallback<T extends (...args: any[]) => void>(cb: T, delay = 600) {
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  return (...args: Parameters<T>) => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => cb(...args), delay);
+  };
+}
 
 export default function CreateDocumentPage() {
   const router = useRouter();
 
-  /** DTO 상태를 최초부터 명확히 정의 */
+  /** DTO 상태 */
   const [dto, setDto] = useState<CreateDocumentDto>({
     doc_created_by: "",
     doc_dong: "",
     doc_gu: "",
     doc_title: "",
     doc_location: "",
+    // 카테고리는 더 이상 사용하지 않지만 DTO에 존재할 수 있으므로 빈 값 유지
     doc_category: "",
     intro_content: "",
     feature_content: "",
@@ -46,10 +37,9 @@ export default function CreateDocumentPage() {
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  /** 간단 유효성 */
+  /** 입력 유효성 */
   const isValid = useMemo(() => {
     if (!dto.doc_title.trim()) return false;
-    if (!dto.doc_category.trim()) return false;
     if (!dto.doc_created_by.trim()) return false;
     if (!dto.doc_gu.trim()) return false;
     if (!dto.doc_dong.trim()) return false;
@@ -57,33 +47,19 @@ export default function CreateDocumentPage() {
     return true;
   }, [dto]);
 
-  /** 공통 input 변경 핸들러 */
+  /** 공통 변경 핸들러 */
   const onChange =
     <K extends keyof CreateDocumentDto>(key: K) =>
-    (
-      e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-    ) => {
+    (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
       setDto((prev) => ({ ...prev, [key]: e.target.value }));
     };
 
-  /** 해시태그 토글(추천 태그 클릭 시 추가/삭제) */
-  const toggleTag = (rawTag: string) => {
-    const tag = normalizeTag(rawTag);
-    setDto((prev) => {
-      const exists = prev.hashtags_content.includes(tag);
-      const next = exists
-        ? prev.hashtags_content.filter((t) => t !== tag)
-        : [...prev.hashtags_content, tag];
-      return { ...prev, hashtags_content: next };
-    });
-  };
-
-  /** 해시태그 직접 입력: 스페이스/쉼표로 구분 */
+  /** 수동 태그 입력 */
   const [tagInput, setTagInput] = useState("");
   const handleTagKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" || e.key === " " || e.key === ",") {
       e.preventDefault();
-      const clean = normalizeTag(tagInput);
+      const clean = tagInput.replaceAll("#", "").replaceAll(",", " ").trim();
       if (clean) {
         setDto((prev) =>
           prev.hashtags_content.includes(clean)
@@ -99,6 +75,93 @@ export default function CreateDocumentPage() {
       ...prev,
       hashtags_content: prev.hashtags_content.filter((t) => t !== tag),
     }));
+  };
+
+  /** ---------------- AI 추천 태그 ---------------- */
+  const [aiTags, setAiTags] = useState<string[]>([]);
+  const [aiStatus, setAiStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [aiError, setAiError] = useState<string | null>(null);
+
+  const canTriggerAI = useMemo(() => {
+    const text = [
+      dto.doc_title,
+      dto.intro_content,
+      dto.feature_content,
+      dto.additional_info_content,
+    ]
+      .filter(Boolean)
+      .join(" ");
+    return text.replace(/\s/g, "").length >= 10;
+  }, [
+    dto.doc_title,
+    dto.intro_content,
+    dto.feature_content,
+    dto.additional_info_content,
+  ]);
+
+  const requestAITags = async () => {
+    try {
+      if (!canTriggerAI) {
+        setAiTags([]);
+        setAiStatus("idle");
+        return;
+      }
+      setAiStatus("loading");
+      setAiError(null);
+
+      const res = await fetch("/api/hashtag", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: dto.doc_title,
+          intro: dto.intro_content,
+          feature: dto.feature_content,
+          more: dto.additional_info_content,
+        }),
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        console.error("AI 태그 API 실패:", res.status, text);
+        setAiStatus("error");
+        setAiError(text || "추천 태그 요청 실패");
+        return;
+      }
+      const data = await res.json();
+      const tags: string[] = Array.isArray(data?.tags) ? data.tags : [];
+      setAiTags(tags);
+      setAiStatus("done");
+    } catch (err: any) {
+      console.error(err);
+      setAiStatus("error");
+      setAiError(err?.message ?? "알 수 없는 오류");
+    }
+  };
+
+  const debouncedRequestAITags = useDebouncedCallback(requestAITags, 700);
+
+  useEffect(() => {
+    debouncedRequestAITags();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    dto.doc_title,
+    dto.intro_content,
+    dto.feature_content,
+    dto.additional_info_content,
+  ]);
+
+  /** 추천 태그 클릭하면 선택 토글 */
+  const togglePickAiTag = (t: string) => {
+    const clean = t.replace(/^#/, "").trim();
+    setDto((prev) => {
+      const exists = prev.hashtags_content.includes(clean);
+      return {
+        ...prev,
+        hashtags_content: exists
+          ? prev.hashtags_content.filter((x) => x !== clean)
+          : [...prev.hashtags_content, clean],
+      };
+    });
   };
 
   /** 제출 */
@@ -250,9 +313,7 @@ export default function CreateDocumentPage() {
 
           {/* 추가 정보 */}
           <div>
-            <div className="mb-2 text-sm font-semibold text-gray-700">
-              추가 정보
-            </div>
+            <div className="mb-2 text-sm font-semibold text-gray-700">추가 정보</div>
             <textarea
               value={dto.additional_info_content}
               onChange={onChange("additional_info_content")}
@@ -262,110 +323,56 @@ export default function CreateDocumentPage() {
           </div>
         </section>
 
-        {/* RIGHT: 카테고리 + 해시태그 */}
+        {/* RIGHT: AI 추천 태그 */}
         <aside className="space-y-4">
-          {/* 카테고리(ComboBox) + 위치 박스(모양용) */}
-          <div className="flex items-center gap-3">
-            {/* ComboBox */}
-            <div className="relative w-full">
-              <select
-                value={dto.doc_category}
-                onChange={onChange("doc_category")}
-                className="w-full appearance-none rounded-xl border border-gray-300 bg-white px-4 py-3 pr-10 text-gray-900 outline-none ring-blue-500 focus:ring-2"
-              >
-                <option value="">카테고리 선택</option>
-                {CATEGORY_OPTIONS.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-              {/* caret */}
-              <svg
-                className="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-500"
-                viewBox="0 0 24 24"
-                fill="none"
-                aria-hidden
-              >
-                <path
-                  d="M6 9l6 6 6-6"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </div>
-
-            {/* 위치 박스(디자인 유지용) */}
-            <div className="inline-flex items-center justify-between rounded-xl border border-gray-300 bg-white px-3 py-3 text-gray-900 min-w-[110px]">
-              <span className="inline-flex items-center gap-2">
-                <svg
-                  className="h-5 w-5"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  aria-hidden
-                >
-                  <path
-                    d="M12 22s7-5.686 7-12a7 7 0 10-14 0c0 6.314 7 12 7 12z"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <circle
-                    cx="12"
-                    cy="10"
-                    r="2.8"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                  />
-                </svg>
-                <span className="whitespace-nowrap">위치</span>
-              </span>
-              <svg
-                className="ml-3 h-4 w-4 text-gray-500"
-                viewBox="0 0 24 24"
-                fill="none"
-                aria-hidden
-              >
-                <path
-                  d="M7 10l5 5 5-5"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </div>
-          </div>
-
-          {/* 해시태그 추천 */}
           <div className="rounded-xl border border-gray-200 bg-white p-4">
-            <div className="mb-3 text-lg font-semibold">해시태그</div>
-
-            {/* 추천 태그 */}
-            <div className="mb-3 flex flex-wrap gap-2">
-              {RECOMMENDED_TAGS.map((t) => {
-                const selected = dto.hashtags_content.includes(t);
-                return (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => toggleTag(t)}
-                    className={`rounded-full px-3 py-1 text-sm ring-1 transition ${
-                      selected
-                        ? "bg-blue-600 text-white ring-blue-600"
-                        : "bg-blue-50 text-blue-700 ring-blue-200 hover:bg-blue-100"
-                    }`}
-                  >
-                    #{t}
-                  </button>
-                );
-              })}
+            <div className="mb-3 flex items-center justify-between">
+              <div className="text-lg font-semibold">AI 추천 태그</div>
+              <button
+                type="button"
+                onClick={requestAITags}
+                className="rounded-md border px-2 py-1 text-sm hover:bg-gray-50"
+                title="다시 분석"
+              >
+                새로고침
+              </button>
             </div>
 
-            {/* 현재 태그 목록 */}
+            {/* 상태 안내 */}
+            {aiStatus === "idle" && (
+              <p className="text-sm text-gray-500">추천이 아직 없습니다.</p>
+            )}
+            {aiStatus === "loading" && (
+              <p className="text-sm text-gray-500">AI 분석 중…</p>
+            )}
+            {aiStatus === "error" && (
+              <p className="text-sm text-red-600">추천 실패: {aiError ?? "오류"}</p>
+            )}
+
+            {/* 추천 태그 목록 */}
+            {aiTags.length > 0 && (
+              <div className="mb-3 mt-1 flex flex-wrap gap-2">
+                {aiTags.map((t) => {
+                  const picked = dto.hashtags_content.includes(t);
+                  return (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => togglePickAiTag(t)}
+                      className={`rounded-full px-3 py-1 text-sm ring-1 transition ${
+                        picked
+                          ? "bg-blue-600 text-white ring-blue-600"
+                          : "bg-blue-50 text-blue-700 ring-blue-200 hover:bg-blue-100"
+                      }`}
+                    >
+                      #{t}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* 현재 선택된 태그 */}
             {dto.hashtags_content.length > 0 && (
               <div className="mb-3 flex flex-wrap gap-2">
                 {dto.hashtags_content.map((tag) => (
@@ -387,7 +394,7 @@ export default function CreateDocumentPage() {
               </div>
             )}
 
-            {/* 직접 입력 */}
+            {/* 수동 입력 */}
             <input
               value={tagInput}
               onChange={(e) => setTagInput(e.target.value)}
@@ -406,18 +413,12 @@ export default function CreateDocumentPage() {
           onClick={handleSubmit}
           disabled={!isValid || submitting}
           className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-4 text-lg text-white shadow-sm transition ${
-            !isValid || submitting
-              ? "bg-blue-300"
-              : "bg-blue-600 hover:bg-blue-700"
+            !isValid || submitting ? "bg-blue-300" : "bg-blue-600 hover:bg-blue-700"
           }`}
         >
           {submitting ? (
             <>
-              <svg
-                className="h-5 w-5 animate-spin"
-                viewBox="0 0 24 24"
-                fill="none"
-              >
+              <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
                 <circle
                   cx="12"
                   cy="12"
@@ -448,20 +449,12 @@ export default function CreateDocumentPage() {
             </>
           )}
         </button>
-        {/* 간단 안내 */}
         {!isValid && (
           <p className="mt-2 text-center text-sm text-gray-500">
-            필수 항목(작성자/구/동/정확한 위치/제목/카테고리)을 입력해 주세요.
+            필수 항목(작성자/구/동/정확한 위치/제목)을 입력해 주세요.
           </p>
         )}
       </div>
     </div>
   );
-}
-
-/** 태그 전처리: 공백/#, 쉼표 제거 & 소문자/트림 */
-function normalizeTag(raw: string) {
-  const t = raw.replaceAll("#", "").replaceAll(",", " ").trim();
-  if (!t) return "";
-  return t;
 }
