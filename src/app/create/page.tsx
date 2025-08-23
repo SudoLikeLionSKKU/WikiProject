@@ -1,13 +1,23 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState, ChangeEvent, KeyboardEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  ChangeEvent,
+  KeyboardEvent,
+} from "react";
 import { createDocument } from "@/lib/fetcher";
 import type { CreateDocumentDto } from "../../../types/dto";
 import { seoulGuDong } from "../../../types/seoulGuDong";
 
 /** 간단한 디바운스 헬퍼 */
-function useDebouncedCallback<T extends (...args: any[]) => void>(cb: T, delay = 600) {
+function useDebouncedCallback<T extends (...args: any[]) => void>(
+  cb: T,
+  delay = 600
+) {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   return (...args: Parameters<T>) => {
     if (timer.current) clearTimeout(timer.current);
@@ -50,7 +60,9 @@ export default function CreateDocumentPage() {
   /** 공통 변경 핸들러 */
   const onChange =
     <K extends keyof CreateDocumentDto>(key: K) =>
-    (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    (
+      e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    ) => {
       setDto((prev) => ({ ...prev, [key]: e.target.value }));
     };
 
@@ -79,7 +91,9 @@ export default function CreateDocumentPage() {
 
   /** ---------------- AI 추천 태그 ---------------- */
   const [aiTags, setAiTags] = useState<string[]>([]);
-  const [aiStatus, setAiStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [aiStatus, setAiStatus] = useState<
+    "idle" | "loading" | "done" | "error"
+  >("idle");
   const [aiError, setAiError] = useState<string | null>(null);
 
   const canTriggerAI = useMemo(() => {
@@ -313,7 +327,9 @@ export default function CreateDocumentPage() {
 
           {/* 추가 정보 */}
           <div>
-            <div className="mb-2 text-sm font-semibold text-gray-700">추가 정보</div>
+            <div className="mb-2 text-sm font-semibold text-gray-700">
+              추가 정보
+            </div>
             <textarea
               value={dto.additional_info_content}
               onChange={onChange("additional_info_content")}
@@ -346,7 +362,7 @@ export default function CreateDocumentPage() {
               <p className="text-sm text-gray-500">AI 분석 중…</p>
             )}
             {aiStatus === "error" && (
-              <p className="text-sm text-red-600">추천 실패: {aiError ?? "오류"}</p>
+              <p className="text-sm text-red-600">추천 실패</p>
             )}
 
             {/* 추천 태그 목록 */}
@@ -413,12 +429,18 @@ export default function CreateDocumentPage() {
           onClick={handleSubmit}
           disabled={!isValid || submitting}
           className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-4 text-lg text-white shadow-sm transition ${
-            !isValid || submitting ? "bg-blue-300" : "bg-blue-600 hover:bg-blue-700"
+            !isValid || submitting
+              ? "bg-blue-300"
+              : "bg-blue-600 hover:bg-blue-700"
           }`}
         >
           {submitting ? (
             <>
-              <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
+              <svg
+                className="h-5 w-5 animate-spin"
+                viewBox="0 0 24 24"
+                fill="none"
+              >
                 <circle
                   cx="12"
                   cy="12"
